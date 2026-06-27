@@ -107,6 +107,22 @@ pub fn swap(
     })
 }
 
+pub fn swap_with_slippage(
+    pool: &mut Pool,
+    direction: SwapDirection,
+    amount_in: TokenAmount,
+    min_amount_out: TokenAmount,
+) -> Result<SwapReceipt, AmmError> {
+    let q = quote(pool, direction, amount_in)?;
+    if q.amount_out < min_amount_out {
+        return Err(AmmError::SlippageFailed {
+            min_out: min_amount_out,
+            actual: q.amount_out,
+        });
+    }
+    swap(pool, direction, amount_in)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -151,5 +167,14 @@ mod tests {
         let r1 = swap(&mut p1, SwapDirection::XtoY, 10_000).unwrap();
         let r2 = swap(&mut p2, SwapDirection::YtoX, 100_000).unwrap();
         assert!(r2.quote.exec_price > r1.quote.exec_price);
+    }
+
+    #[test]
+    fn test_slippage_failure_leaves_state_unchanged() {
+        let mut pool = make_pool();
+        let reserve_x_before = pool.reserve_x;
+        let result = swap_with_slippage(&mut pool, SwapDirection::XtoY, 10_000, 999_999);
+        assert!(result.is_err());
+        assert_eq!(pool.reserve_x, reserve_x_before);
     }
 }

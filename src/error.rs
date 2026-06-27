@@ -22,4 +22,6 @@ pub enum AmmError {
     InvalidReserves,
     #[error("division by zero")]
     DivisionByZero,
+    #[error("slippage limit exceeded: expected at least {min_out}, got {actual}")]
+    SlippageFailed { min_out: u128, actual: u128 },
 }

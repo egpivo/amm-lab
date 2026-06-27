@@ -3,7 +3,7 @@ use crate::error::AmmError;
 pub type TokenAmount = u128;
 pub type BasisPoints = u16;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TokenId {
     X,
     Y,
