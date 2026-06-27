@@ -1,0 +1,51 @@
+name = "lp_vs_hold"
+description = "LP deposits at price=1.0. Traders swap. External price moves to 1.5. Arbitrage reprices. LP withdraws and compares against passive hold."
+
+[[transactions]]
+type = "CreatePool"
+reserve_x = 1000000
+reserve_y = 1000000
+fee_bps = 30
+
+[[transactions]]
+type = "AddLiquidity"
+actor = "Lp1"
+amount_x = 500000
+amount_y = 500000
+
+# simulate some trading volume
+[[transactions]]
+type = "SwapExactIn"
+actor = "Trader1"
+direction = "XtoY"
+amount_in = 10000
+min_amount_out = 0
+
+[[transactions]]
+type = "SwapExactIn"
+actor = "Trader1"
+direction = "YtoX"
+amount_in = 10000
+min_amount_out = 0
+
+[[transactions]]
+type = "SwapExactIn"
+actor = "Trader1"
+direction = "XtoY"
+amount_in = 20000
+min_amount_out = 0
+
+# external price moves up 50%
+[[transactions]]
+type = "ExternalPriceMove"
+new_price = 1.5
+
+# arbitrage reprices the pool
+[[transactions]]
+type = "ArbitrageUntilNoProfit"
+max_steps = 50
+
+# report LP performance vs hold
+[[transactions]]
+type = "ReportLpPerformance"
+actor = "Lp1"

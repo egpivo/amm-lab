@@ -31,6 +31,18 @@ enum Commands {
         #[arg(long)]
         fee_bps: u16,
     },
+    Scenario {
+        #[command(subcommand)]
+        action: ScenarioAction,
+    },
+}
+
+#[derive(Subcommand)]
+enum ScenarioAction {
+    Run {
+        #[arg()]
+        file: String,
+    },
 }
 
 fn main() {
@@ -101,5 +113,32 @@ fn main() {
                 }
             }
         }
+        Commands::Scenario { action } => match action {
+            ScenarioAction::Run { file } => {
+                let path = std::path::Path::new(&file);
+                let scenario = amm_lab::scenario::load_scenario(path).unwrap_or_else(|e| {
+                    eprintln!("Failed to load scenario: {e}");
+                    std::process::exit(1);
+                });
+                let report = amm_lab::scenario::run_scenario(&scenario).unwrap_or_else(|e| {
+                    eprintln!("Scenario error: {e}");
+                    std::process::exit(1);
+                });
+
+                for line in &report.log {
+                    println!("{line}");
+                }
+
+                let out_dir = std::path::Path::new("data/processed");
+                match amm_lab::scenario::write_json(&report, out_dir) {
+                    Ok(p) => println!("\nJSON → {p}"),
+                    Err(e) => eprintln!("JSON write error: {e}"),
+                }
+                match amm_lab::scenario::write_csv_swaps(&report, out_dir) {
+                    Ok(p) => println!("CSV  → {p}"),
+                    Err(e) => eprintln!("CSV write error: {e}"),
+                }
+            }
+        },
     }
 }

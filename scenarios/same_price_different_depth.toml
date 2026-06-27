@@ -1,0 +1,44 @@
+name = "same_price_different_depth"
+description = "Three pools at price=1.0 with different depths. Same trade size shows depth determines execution quality."
+
+# Pool A — shallow (10k reserves)
+[[transactions]]
+type = "CreatePool"
+reserve_x = 10000
+reserve_y = 10000
+fee_bps = 30
+
+[[transactions]]
+type = "SwapExactIn"
+actor = "Trader1"
+direction = "XtoY"
+amount_in = 1000
+min_amount_out = 0
+
+# Pool B — medium (1M reserves)
+[[transactions]]
+type = "CreatePool"
+reserve_x = 1000000
+reserve_y = 1000000
+fee_bps = 30
+
+[[transactions]]
+type = "SwapExactIn"
+actor = "Trader1"
+direction = "XtoY"
+amount_in = 1000
+min_amount_out = 0
+
+# Pool C — deep (100M reserves)
+[[transactions]]
+type = "CreatePool"
+reserve_x = 100000000
+reserve_y = 100000000
+fee_bps = 30
+
+[[transactions]]
+type = "SwapExactIn"
+actor = "Trader1"
+direction = "XtoY"
+amount_in = 1000
+min_amount_out = 0

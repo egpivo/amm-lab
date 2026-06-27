@@ -1,0 +1,69 @@
+{
+  "scenario_name": "same_price_different_depth",
+  "description": "Three pools at price=1.0 with different depths. Same trade size shows depth determines execution quality.",
+  "run_timestamp": "2026-06-27T09:02:58.509782+00:00",
+  "final_pool": {
+    "reserve_x": 100001000,
+    "reserve_y": 99999004,
+    "lp_supply": 100000000,
+    "spot_price": 0.999980040199598,
+    "invariant": 10000000399004000
+  },
+  "swap_events": [
+    {
+      "step": 2,
+      "actor": "Trader1",
+      "direction": "XtoY",
+      "amount_in": 1000,
+      "amount_out": 906,
+      "fee_amount": 3,
+      "exec_price": 1.1037527593818985,
+      "spot_price_before": 1.0,
+      "price_impact_pct": 10.375275938189855,
+      "reserve_x_after": 11000,
+      "reserve_y_after": 9094,
+      "invariant_before": 100000000,
+      "invariant_after": 100034000
+    },
+    {
+      "step": 4,
+      "actor": "Trader1",
+      "direction": "XtoY",
+      "amount_in": 1000,
+      "amount_out": 996,
+      "fee_amount": 3,
+      "exec_price": 1.0040160642570282,
+      "spot_price_before": 1.0,
+      "price_impact_pct": 0.40160642570281624,
+      "reserve_x_after": 1001000,
+      "reserve_y_after": 999004,
+      "invariant_before": 1000000000000,
+      "invariant_after": 1000003004000
+    },
+    {
+      "step": 6,
+      "actor": "Trader1",
+      "direction": "XtoY",
+      "amount_in": 1000,
+      "amount_out": 996,
+      "fee_amount": 3,
+      "exec_price": 1.0040160642570282,
+      "spot_price_before": 1.0,
+      "price_impact_pct": 0.40160642570281624,
+      "reserve_x_after": 100001000,
+      "reserve_y_after": 99999004,
+      "invariant_before": 10000000000000000,
+      "invariant_after": 10000000399004000
+    }
+  ],
+  "arbitrage_events": [],
+  "lp_performance": null,
+  "log": [
+    "[1] CreatePool reserve_x=10000 reserve_y=10000 fee_bps=30",
+    "[2] SwapExactIn actor=Trader1 direction=XtoY amount_in=1000 amount_out=906 exec_price=1.103753 impact=10.3753%",
+    "[3] CreatePool reserve_x=1000000 reserve_y=1000000 fee_bps=30",
+    "[4] SwapExactIn actor=Trader1 direction=XtoY amount_in=1000 amount_out=996 exec_price=1.004016 impact=0.4016%",
+    "[5] CreatePool reserve_x=100000000 reserve_y=100000000 fee_bps=30",
+    "[6] SwapExactIn actor=Trader1 direction=XtoY amount_in=1000 amount_out=996 exec_price=1.004016 impact=0.4016%"
+  ]
+}

@@ -1,0 +1,16 @@
+name = "arbitrage_repricing"
+description = "Pool starts at price=1.0. External price moves to 1.5. Arbitrage reprices the pool."
+
+[[transactions]]
+type = "CreatePool"
+reserve_x = 1000000
+reserve_y = 1000000
+fee_bps = 30
+
+[[transactions]]
+type = "ExternalPriceMove"
+new_price = 1.5
+
+[[transactions]]
+type = "ArbitrageUntilNoProfit"
+max_steps = 50

@@ -1,8 +1,9 @@
 use crate::amount::{TokenAmount, mul_div};
 use crate::error::AmmError;
 use crate::pool::Pool;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SwapDirection {
     XtoY,
     YtoX,

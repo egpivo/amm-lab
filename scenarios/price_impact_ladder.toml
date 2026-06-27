@@ -1,0 +1,80 @@
+name = "price_impact_ladder"
+description = "Same starting pool, six trade sizes — shows price impact grows with size"
+
+[[transactions]]
+type = "CreatePool"
+reserve_x = 1000000
+reserve_y = 1000000
+fee_bps = 30
+
+[[transactions]]
+type = "SwapExactIn"
+actor = "Trader1"
+direction = "XtoY"
+amount_in = 100
+min_amount_out = 0
+
+[[transactions]]
+type = "CreatePool"
+reserve_x = 1000000
+reserve_y = 1000000
+fee_bps = 30
+
+[[transactions]]
+type = "SwapExactIn"
+actor = "Trader1"
+direction = "XtoY"
+amount_in = 1000
+min_amount_out = 0
+
+[[transactions]]
+type = "CreatePool"
+reserve_x = 1000000
+reserve_y = 1000000
+fee_bps = 30
+
+[[transactions]]
+type = "SwapExactIn"
+actor = "Trader1"
+direction = "XtoY"
+amount_in = 10000
+min_amount_out = 0
+
+[[transactions]]
+type = "CreatePool"
+reserve_x = 1000000
+reserve_y = 1000000
+fee_bps = 30
+
+[[transactions]]
+type = "SwapExactIn"
+actor = "Trader1"
+direction = "XtoY"
+amount_in = 50000
+min_amount_out = 0
+
+[[transactions]]
+type = "CreatePool"
+reserve_x = 1000000
+reserve_y = 1000000
+fee_bps = 30
+
+[[transactions]]
+type = "SwapExactIn"
+actor = "Trader1"
+direction = "XtoY"
+amount_in = 100000
+min_amount_out = 0
+
+[[transactions]]
+type = "CreatePool"
+reserve_x = 1000000
+reserve_y = 1000000
+fee_bps = 30
+
+[[transactions]]
+type = "SwapExactIn"
+actor = "Trader1"
+direction = "XtoY"
+amount_in = 250000
+min_amount_out = 0

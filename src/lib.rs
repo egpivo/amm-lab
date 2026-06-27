@@ -6,4 +6,6 @@ pub mod ledger;
 pub mod liquidity;
 pub mod lp_accounting;
 pub mod pool;
+pub mod scenario;
 pub mod swap;
+pub mod transaction;

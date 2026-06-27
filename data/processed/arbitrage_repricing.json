@@ -1,0 +1,28 @@
+{
+  "scenario_name": "arbitrage_repricing",
+  "description": "Pool starts at price=1.0. External price moves to 1.5. Arbitrage reprices the pool.",
+  "run_timestamp": "2026-06-27T09:02:58.782554+00:00",
+  "final_pool": {
+    "reserve_x": 891780,
+    "reserve_y": 1162299,
+    "lp_supply": 1000000,
+    "spot_price": 1.3033472381080535,
+    "invariant": 1036515002220
+  },
+  "swap_events": [],
+  "arbitrage_events": [
+    {
+      "step": 3,
+      "steps_executed": 50,
+      "pool_price_before": 1.0,
+      "pool_price_after": 1.3033472381080535,
+      "external_price": 1.5
+    }
+  ],
+  "lp_performance": null,
+  "log": [
+    "[1] CreatePool reserve_x=1000000 reserve_y=1000000 fee_bps=30",
+    "[2] ExternalPriceMove new_price=1.500000",
+    "[3] ArbitrageUntilNoProfit steps=50 price_before=1.000000 price_after=1.303347"
+  ]
+}

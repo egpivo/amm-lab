@@ -1,0 +1,46 @@
+{
+  "generated_at": "2026-06-27",
+  "generator": "amm-lab cargo run -- scenario run",
+  "artifacts": [
+    {
+      "file": "data/processed/price_impact_ladder.json",
+      "scenario": "price_impact_ladder",
+      "sha256": "30aa83ba39f29f4c438acec57a5a155e9c8c0fa73dca0a2722baf81fe85d60e9"
+    },
+    {
+      "file": "data/processed/price_impact_ladder_swaps.csv",
+      "scenario": "price_impact_ladder",
+      "sha256": "ff22db83e3bd7635fba42154e97bfaa58aead752c46aa040765ac010d93e3abe"
+    },
+    {
+      "file": "data/processed/same_price_different_depth.json",
+      "scenario": "same_price_different_depth",
+      "sha256": "646318f58912aef0c5c26f121b47b15a335ff5b368955c7dad597eba00f2b278"
+    },
+    {
+      "file": "data/processed/same_price_different_depth_swaps.csv",
+      "scenario": "same_price_different_depth",
+      "sha256": "cdd39266e47572bd2474c30516f9aa7f0952ff3faafee0af79d9804a768ea233"
+    },
+    {
+      "file": "data/processed/arbitrage_repricing.json",
+      "scenario": "arbitrage_repricing",
+      "sha256": "be0acc35ebb0c816331dc970c4db5ae00929f17571342cf263293dfd4ab20385"
+    },
+    {
+      "file": "data/processed/arbitrage_repricing_swaps.csv",
+      "scenario": "arbitrage_repricing",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "data/processed/lp_vs_hold.json",
+      "scenario": "lp_vs_hold",
+      "sha256": "a86d4f54a78a6a8f390444b44d8027f083353a2db337b0e72c5de6a92bba3c85"
+    },
+    {
+      "file": "data/processed/lp_vs_hold_swaps.csv",
+      "scenario": "lp_vs_hold",
+      "sha256": "5a83b48a895bd8bb5a39f46ec7ab57f430fb29d259cb16625d4e475d78d33ad9"
+    }
+  ]
+}
