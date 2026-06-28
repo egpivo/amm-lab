@@ -1,38 +1,38 @@
 name = "lp_vs_hold"
-description = "LP deposits at price=1.0. Traders swap. External price moves to 1.5. Arbitrage reprices. LP withdraws and compares against passive hold."
+description = "LP deposits at price=1.0 into a 1T/1T pool. Traders generate fee income. External price moves to 1.5, arbitrage reprices. LP performance vs passive hold reported with fee income proxy separated."
 
 [[transactions]]
 type = "CreatePool"
-reserve_x = 1000000
-reserve_y = 1000000
+reserve_x = 1000000000000
+reserve_y = 1000000000000
 fee_bps = 30
 
 [[transactions]]
 type = "AddLiquidity"
 actor = "Lp1"
-amount_x = 500000
-amount_y = 500000
+amount_x = 500000000000
+amount_y = 500000000000
 
-# simulate some trading volume
+# trading volume generates fee income for the pool
 [[transactions]]
 type = "SwapExactIn"
 actor = "Trader1"
 direction = "XtoY"
-amount_in = 10000
+amount_in = 10000000000
 min_amount_out = 0
 
 [[transactions]]
 type = "SwapExactIn"
 actor = "Trader1"
 direction = "YtoX"
-amount_in = 10000
+amount_in = 10000000000
 min_amount_out = 0
 
 [[transactions]]
 type = "SwapExactIn"
 actor = "Trader1"
 direction = "XtoY"
-amount_in = 20000
+amount_in = 20000000000
 min_amount_out = 0
 
 # external price moves up 50%

@@ -6,6 +6,10 @@ pub struct Pool {
     pub reserve_y: TokenAmount,
     pub lp_supply: TokenAmount,
     pub fee_bps: BasisPoints,
+    /// Cumulative fees collected in token X (stays inside reserves).
+    pub fee_x_accumulated: TokenAmount,
+    /// Cumulative fees collected in token Y.
+    pub fee_y_accumulated: TokenAmount,
 }
 
 impl Pool {
@@ -27,6 +31,8 @@ impl Pool {
             reserve_y,
             lp_supply,
             fee_bps,
+            fee_x_accumulated: 0,
+            fee_y_accumulated: 0,
         })
     }
     pub fn invariant(&self) -> u128 {

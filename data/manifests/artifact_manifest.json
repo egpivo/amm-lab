@@ -1,46 +1,70 @@
 {
   "generated_at": "2026-06-27",
-  "generator": "amm-lab cargo run -- scenario run",
+  "generator": "amm-lab cargo run --release -- scenario run",
+  "scale_note": "All reserves use 10^12 base units. Raw integer amounts; display values divide by 10^12.",
   "artifacts": [
     {
       "file": "data/processed/price_impact_ladder.json",
       "scenario": "price_impact_ladder",
-      "sha256": "30aa83ba39f29f4c438acec57a5a155e9c8c0fa73dca0a2722baf81fe85d60e9"
+      "sha256": "8bdadd4050bfaeb462bb70d94c08744c3ad5d7e008c4819de1bbdbcd9311728b"
     },
     {
       "file": "data/processed/price_impact_ladder_swaps.csv",
       "scenario": "price_impact_ladder",
-      "sha256": "ff22db83e3bd7635fba42154e97bfaa58aead752c46aa040765ac010d93e3abe"
+      "sha256": "9d35f515525a60370e77e649a6b1886e62783ef2571cdd14399582f9bec7f81e"
+    },
+    {
+      "file": "data/processed/price_impact_ladder.arbitrage.csv",
+      "scenario": "price_impact_ladder",
+      "note": "empty — no arbitrage in this scenario",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "file": "data/processed/same_price_different_depth.json",
       "scenario": "same_price_different_depth",
-      "sha256": "646318f58912aef0c5c26f121b47b15a335ff5b368955c7dad597eba00f2b278"
+      "sha256": "06913fe151490ff2bfe9f600510eef43b8aceebe5ddb9c86b3b4fcbaa56e8b40"
     },
     {
       "file": "data/processed/same_price_different_depth_swaps.csv",
       "scenario": "same_price_different_depth",
-      "sha256": "cdd39266e47572bd2474c30516f9aa7f0952ff3faafee0af79d9804a768ea233"
+      "sha256": "94762269b6b137d9f257f33db24ae2ef4f3c69aecb2bf8ab4281df04c08129db"
+    },
+    {
+      "file": "data/processed/same_price_different_depth_arbitrage.csv",
+      "scenario": "same_price_different_depth",
+      "note": "empty — no arbitrage in this scenario",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "file": "data/processed/arbitrage_repricing.json",
       "scenario": "arbitrage_repricing",
-      "sha256": "be0acc35ebb0c816331dc970c4db5ae00929f17571342cf263293dfd4ab20385"
+      "sha256": "895599e4d1c06c14f946bc4cb91b3276edfac9ae18c97b3703e447bf632bf63b"
     },
     {
       "file": "data/processed/arbitrage_repricing_swaps.csv",
       "scenario": "arbitrage_repricing",
+      "note": "empty — no manual swaps in this scenario",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "data/processed/arbitrage_repricing_arbitrage.csv",
+      "scenario": "arbitrage_repricing",
+      "sha256": "180f718ab4a3521a7a4419cd1a6ff5880b6e77477d8954f3fa3aca868d89b2a8"
     },
     {
       "file": "data/processed/lp_vs_hold.json",
       "scenario": "lp_vs_hold",
-      "sha256": "a86d4f54a78a6a8f390444b44d8027f083353a2db337b0e72c5de6a92bba3c85"
+      "sha256": "685a0f438b024d54311bf18007ad4ec092e77a198b3e1f9965522d8216bdf0a5"
     },
     {
       "file": "data/processed/lp_vs_hold_swaps.csv",
       "scenario": "lp_vs_hold",
-      "sha256": "5a83b48a895bd8bb5a39f46ec7ab57f430fb29d259cb16625d4e475d78d33ad9"
+      "sha256": "47d6202583db8a13a49c185468b2e13efdd5d8fb5ee784d3d273ba1c4b465f7e"
+    },
+    {
+      "file": "data/processed/lp_vs_hold_arbitrage.csv",
+      "scenario": "lp_vs_hold",
+      "sha256": "fd032be2b18eb4d28b069d6d44dd3c75160016f57d37d9871f8f75a82a0ca597"
     }
   ]
 }

@@ -138,6 +138,10 @@ fn main() {
                     Ok(p) => println!("CSV  → {p}"),
                     Err(e) => eprintln!("CSV write error: {e}"),
                 }
+                match amm_lab::scenario::write_csv_arbitrage(&report, out_dir) {
+                    Ok(p) => println!("CSV  → {p}"),
+                    Err(e) => eprintln!("CSV write error: {e}"),
+                }
             }
         },
     }

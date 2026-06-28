@@ -1,87 +1,108 @@
 {
   "scenario_name": "lp_vs_hold",
-  "description": "LP deposits at price=1.0. Traders swap. External price moves to 1.5. Arbitrage reprices. LP withdraws and compares against passive hold.",
-  "run_timestamp": "2026-06-27T09:03:15.366155+00:00",
+  "description": "LP deposits at price=1.0 into a 1T/1T pool. Traders generate fee income. External price moves to 1.5, arbitrage reprices. LP performance vs passive hold reported with fee income proxy separated.",
+  "run_timestamp": "2026-06-27T12:01:49.668755+00:00",
   "final_pool": {
-    "reserve_x": 1319367,
-    "reserve_y": 1763028,
-    "lp_supply": 1500000,
-    "spot_price": 1.3362680740082176,
-    "invariant": 2326080963276
+    "reserve_x": 1226635187943,
+    "reserve_y": 1835496987600,
+    "lp_supply": 1500000000000,
+    "spot_price": 1.4963674657646402,
+    "invariant": 2251485192353536340506800,
+    "fee_x_accumulated": 90000000,
+    "fee_y_accumulated": 1095243870
   },
   "swap_events": [
     {
       "step": 3,
       "actor": "Trader1",
       "direction": "XtoY",
-      "amount_in": 10000,
-      "amount_out": 9904,
-      "fee_amount": 30,
-      "exec_price": 1.0096930533117932,
+      "amount_in": 10000000000,
+      "amount_out": 9904170281,
+      "fee_amount": 30000000,
+      "exec_price": 1.0096756938018159,
       "spot_price_before": 1.0,
-      "price_impact_pct": 0.9693053311793154,
-      "reserve_x_after": 1510000,
-      "reserve_y_after": 1490096,
-      "invariant_before": 2250000000000,
-      "invariant_after": 2250044960000
+      "price_impact_pct": 0.9675693801815877,
+      "reserve_x_after": 1510000000000,
+      "reserve_y_after": 1490095829719,
+      "invariant_before": 2250000000000000000000000,
+      "invariant_after": 2250044702875690000000000
     },
     {
       "step": 4,
       "actor": "Trader1",
       "direction": "YtoX",
-      "amount_in": 10000,
-      "amount_out": 10036,
-      "fee_amount": 30,
-      "exec_price": 0.9964129135113591,
-      "spot_price_before": 0.9868185430463576,
-      "price_impact_pct": 0.9722527543293977,
-      "reserve_x_after": 1499964,
-      "reserve_y_after": 1500096,
-      "invariant_before": 2250044960000,
-      "invariant_after": 2250089996544
+      "amount_in": 10000000000,
+      "amount_out": 10036026220,
+      "fee_amount": 30000000,
+      "exec_price": 0.9964103102951041,
+      "spot_price_before": 0.9868184302774834,
+      "price_impact_pct": 0.972000494044638,
+      "reserve_x_after": 1499963973780,
+      "reserve_y_after": 1500095829719,
+      "invariant_before": 2250044702875690000000000,
+      "invariant_after": 2250089701796117460767820
     },
     {
       "step": 5,
       "actor": "Trader1",
       "direction": "XtoY",
-      "amount_in": 20000,
-      "amount_out": 19680,
-      "fee_amount": 60,
-      "exec_price": 1.016260162601626,
-      "spot_price_before": 1.0000880021120506,
-      "price_impact_pct": 1.617073743052818,
-      "reserve_x_after": 1519964,
-      "reserve_y_after": 1480416,
-      "invariant_before": 2250089996544,
-      "invariant_after": 2250179025024
+      "amount_in": 20000000000,
+      "amount_out": 19680132008,
+      "fee_amount": 60000000,
+      "exec_price": 1.0162533458550975,
+      "spot_price_before": 1.0000879060706156,
+      "price_impact_pct": 1.616401886909779,
+      "reserve_x_after": 1519963973780,
+      "reserve_y_after": 1480415697711,
+      "invariant_before": 2250089701796117460767820,
+      "invariant_after": 2250178526739102810017580
     }
   ],
   "arbitrage_events": [
     {
       "step": 7,
-      "steps_executed": 50,
-      "pool_price_before": 0.9739809627070115,
-      "pool_price_after": 1.3362680740082176,
+      "steps_executed": 1,
+      "pool_price_before": 0.9739807806295255,
+      "pool_price_after": 1.4963674657646402,
       "external_price": 1.5
+    }
+  ],
+  "arbitrage_steps": [
+    {
+      "tx_step": 7,
+      "step_index": 0,
+      "direction": "YtoX",
+      "amount_in": 355081289889,
+      "amount_out": 293328785837,
+      "fee_paid": 1065243870,
+      "profit_estimate": 84911888866.5,
+      "pool_price_before": 0.9739807806295255,
+      "pool_price_after": 1.4963674657646402,
+      "external_price": 1.5,
+      "price_gap_before": 0.5260192193704745,
+      "price_gap_after": 0.003632534235359808,
+      "reserve_x_after": 1226635187943,
+      "reserve_y_after": 1835496987600
     }
   ],
   "lp_performance": {
     "actor": "Lp1",
-    "withdraw_x": 439789,
-    "withdraw_y": 587676,
-    "hold_value_in_y": 1250000.0,
-    "lp_value_in_y": 1247359.5,
+    "withdraw_x": 408878395981,
+    "withdraw_y": 611832329200,
+    "fee_income_value_in_y": 410081290.0,
+    "hold_value_in_y": 1250000000000.0,
+    "lp_value_in_y": 1225149923171.5,
     "impermanent_loss_pct": -2.0204102886728803,
-    "net_profit_loss_in_y": -2640.5
+    "net_profit_loss_in_y": -24850076828.5
   },
   "log": [
-    "[1] CreatePool reserve_x=1000000 reserve_y=1000000 fee_bps=30",
-    "[2] AddLiquidity actor=Lp1 lp_minted=500000",
-    "[3] SwapExactIn actor=Trader1 direction=XtoY amount_in=10000 amount_out=9904 exec_price=1.009693 impact=0.9693%",
-    "[4] SwapExactIn actor=Trader1 direction=YtoX amount_in=10000 amount_out=10036 exec_price=0.996413 impact=0.9723%",
-    "[5] SwapExactIn actor=Trader1 direction=XtoY amount_in=20000 amount_out=19680 exec_price=1.016260 impact=1.6171%",
+    "[1] CreatePool reserve_x=1000000000000 reserve_y=1000000000000 fee_bps=30",
+    "[2] AddLiquidity actor=Lp1 lp_minted=500000000000",
+    "[3] SwapExactIn actor=Trader1 direction=XtoY amount_in=10000000000 amount_out=9904170281 exec_price=1.009676 impact=0.9676%",
+    "[4] SwapExactIn actor=Trader1 direction=YtoX amount_in=10000000000 amount_out=10036026220 exec_price=0.996410 impact=0.9720%",
+    "[5] SwapExactIn actor=Trader1 direction=XtoY amount_in=20000000000 amount_out=19680132008 exec_price=1.016253 impact=1.6164%",
     "[6] ExternalPriceMove new_price=1.500000",
-    "[7] ArbitrageUntilNoProfit steps=50 price_before=0.973981 price_after=1.336268",
-    "[8] LpPerformance actor=Lp1 hold=1250000.00 lp=1247359.50 il=-2.0204% net=-2640.50"
+    "[7] ArbitrageUntilNoProfit steps=1 price_before=0.973981 price_after=1.496367",
+    "[8] LpPerformance actor=Lp1 fee_proxy=410081290.00 hold=1250000000000.00 lp=1225149923171.50 il=-2.0204% net=-24850076828.50"
   ]
 }

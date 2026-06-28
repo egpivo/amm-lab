@@ -1,10 +1,10 @@
 name = "arbitrage_repricing"
-description = "Pool starts at price=1.0. External price moves to 1.5. Arbitrage reprices the pool."
+description = "1T/1T pool at price=1.0. External price moves to 1.5. Ternary-search arbitrage reprices the pool step by step until no profit remains."
 
 [[transactions]]
 type = "CreatePool"
-reserve_x = 1000000
-reserve_y = 1000000
+reserve_x = 1000000000000
+reserve_y = 1000000000000
 fee_bps = 30
 
 [[transactions]]

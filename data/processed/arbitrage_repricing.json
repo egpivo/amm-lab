@@ -1,28 +1,48 @@
 {
   "scenario_name": "arbitrage_repricing",
-  "description": "Pool starts at price=1.0. External price moves to 1.5. Arbitrage reprices the pool.",
-  "run_timestamp": "2026-06-27T09:02:58.782554+00:00",
+  "description": "1T/1T pool at price=1.0. External price moves to 1.5. Ternary-search arbitrage reprices the pool step by step until no profit remains.",
+  "run_timestamp": "2026-06-27T12:01:49.436889+00:00",
   "final_pool": {
-    "reserve_x": 891780,
-    "reserve_y": 1162299,
-    "lp_supply": 1000000,
-    "spot_price": 1.3033472381080535,
-    "invariant": 1036515002220
+    "reserve_x": 817724255605,
+    "reserve_y": 1223576854659,
+    "lp_supply": 1000000000000,
+    "spot_price": 1.4963196288628209,
+    "invariant": 1000548472651538051113695,
+    "fee_x_accumulated": 0,
+    "fee_y_accumulated": 670730564
   },
   "swap_events": [],
   "arbitrage_events": [
     {
       "step": 3,
-      "steps_executed": 50,
+      "steps_executed": 1,
       "pool_price_before": 1.0,
-      "pool_price_after": 1.3033472381080535,
+      "pool_price_after": 1.4963196288628209,
       "external_price": 1.5
+    }
+  ],
+  "arbitrage_steps": [
+    {
+      "tx_step": 3,
+      "step_index": 0,
+      "direction": "YtoX",
+      "amount_in": 223576854659,
+      "amount_out": 182275744395,
+      "fee_paid": 670730564,
+      "profit_estimate": 49836761933.5,
+      "pool_price_before": 1.0,
+      "pool_price_after": 1.4963196288628209,
+      "external_price": 1.5,
+      "price_gap_before": 0.5,
+      "price_gap_after": 0.003680371137179117,
+      "reserve_x_after": 817724255605,
+      "reserve_y_after": 1223576854659
     }
   ],
   "lp_performance": null,
   "log": [
-    "[1] CreatePool reserve_x=1000000 reserve_y=1000000 fee_bps=30",
+    "[1] CreatePool reserve_x=1000000000000 reserve_y=1000000000000 fee_bps=30",
     "[2] ExternalPriceMove new_price=1.500000",
-    "[3] ArbitrageUntilNoProfit steps=50 price_before=1.000000 price_after=1.303347"
+    "[3] ArbitrageUntilNoProfit steps=1 price_before=1.000000 price_after=1.496320"
   ]
 }

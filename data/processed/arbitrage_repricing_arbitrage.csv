@@ -1,0 +1,2 @@
+tx_step,step_index,direction,amount_in,amount_out,fee_paid,profit_estimate,pool_price_before,pool_price_after,external_price,price_gap_before,price_gap_after,reserve_x_after,reserve_y_after
+3,0,YtoX,223576854659,182275744395,670730564,49836761933.5,1.0,1.4963196288628209,1.5,0.5,0.003680371137179117,817724255605,1223576854659

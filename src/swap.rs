@@ -99,6 +99,10 @@ pub fn swap(
     };
     pool.reserve_x = reserve_x_after;
     pool.reserve_y = reserve_y_after;
+    match direction {
+        SwapDirection::XtoY => pool.fee_x_accumulated += quote.fee_amount,
+        SwapDirection::YtoX => pool.fee_y_accumulated += quote.fee_amount,
+    }
     Ok(SwapReceipt {
         quote,
         reserve_x_before,

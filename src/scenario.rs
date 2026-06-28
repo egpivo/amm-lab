@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-use crate::arbitrage::run_arbitrage;
+use crate::arbitrage::{ArbitrageStep, run_arbitrage};
 use crate::error::AmmError;
 use crate::liquidity::{add_liquidity, remove_liquidity};
 use crate::lp_accounting::{LiquidityPosition, compute_lp_performance};
@@ -37,6 +37,46 @@ pub struct SwapEvent {
     pub invariant_after: u128,
 }
 
+/// One row in the arbitrage-steps CSV; mirrors `ArbitrageStep` with a tx_step prefix.
+#[derive(Debug, Clone, Serialize)]
+pub struct ArbitrageStepRecord {
+    pub tx_step: usize,
+    pub step_index: u32,
+    pub direction: String,
+    pub amount_in: u128,
+    pub amount_out: u128,
+    pub fee_paid: u128,
+    pub profit_estimate: f64,
+    pub pool_price_before: f64,
+    pub pool_price_after: f64,
+    pub external_price: f64,
+    pub price_gap_before: f64,
+    pub price_gap_after: f64,
+    pub reserve_x_after: u128,
+    pub reserve_y_after: u128,
+}
+
+impl ArbitrageStepRecord {
+    fn from_step(tx_step: usize, s: &ArbitrageStep) -> Self {
+        ArbitrageStepRecord {
+            tx_step,
+            step_index: s.step_index,
+            direction: format!("{:?}", s.direction),
+            amount_in: s.amount_in,
+            amount_out: s.amount_out,
+            fee_paid: s.fee_paid,
+            profit_estimate: s.profit_estimate,
+            pool_price_before: s.pool_price_before,
+            pool_price_after: s.pool_price_after,
+            external_price: s.external_price,
+            price_gap_before: s.price_gap_before,
+            price_gap_after: s.price_gap_after,
+            reserve_x_after: s.reserve_x_after,
+            reserve_y_after: s.reserve_y_after,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct ArbitrageEvent {
     pub step: usize,
@@ -51,6 +91,8 @@ pub struct LpPerformanceEvent {
     pub actor: String,
     pub withdraw_x: u128,
     pub withdraw_y: u128,
+    /// Pro-rata share of total fees valued at external_price. Proxy only.
+    pub fee_income_value_in_y: f64,
     pub hold_value_in_y: f64,
     pub lp_value_in_y: f64,
     pub impermanent_loss_pct: f64,
@@ -64,6 +106,8 @@ pub struct PoolSnapshot {
     pub lp_supply: u128,
     pub spot_price: f64,
     pub invariant: u128,
+    pub fee_x_accumulated: u128,
+    pub fee_y_accumulated: u128,
 }
 
 impl PoolSnapshot {
@@ -74,6 +118,8 @@ impl PoolSnapshot {
             lp_supply: pool.lp_supply,
             spot_price: pool.spot_price(),
             invariant: pool.invariant(),
+            fee_x_accumulated: pool.fee_x_accumulated,
+            fee_y_accumulated: pool.fee_y_accumulated,
         }
     }
 }
@@ -88,6 +134,8 @@ pub struct ScenarioReport {
     pub final_pool: Option<PoolSnapshot>,
     pub swap_events: Vec<SwapEvent>,
     pub arbitrage_events: Vec<ArbitrageEvent>,
+    /// All individual arbitrage steps across all ArbitrageUntilNoProfit transactions.
+    pub arbitrage_steps: Vec<ArbitrageStepRecord>,
     pub lp_performance: Option<LpPerformanceEvent>,
     pub log: Vec<String>,
 }
@@ -101,6 +149,7 @@ pub fn run_scenario(scenario: &Scenario) -> Result<ScenarioReport, AmmError> {
 
     let mut swap_events: Vec<SwapEvent> = Vec::new();
     let mut arbitrage_events: Vec<ArbitrageEvent> = Vec::new();
+    let mut arbitrage_steps: Vec<ArbitrageStepRecord> = Vec::new();
     let mut lp_performance: Option<LpPerformanceEvent> = None;
     let mut log: Vec<String> = Vec::new();
     let mut step = 0usize;
@@ -114,7 +163,7 @@ pub fn run_scenario(scenario: &Scenario) -> Result<ScenarioReport, AmmError> {
                 fee_bps,
             } => {
                 pool = Some(Pool::new(*reserve_x, *reserve_y, *fee_bps)?);
-                lp_position = None; // reset position on new pool
+                lp_position = None;
                 log.push(format!(
                     "[{step}] CreatePool reserve_x={reserve_x} reserve_y={reserve_y} fee_bps={fee_bps}"
                 ));
@@ -128,7 +177,6 @@ pub fn run_scenario(scenario: &Scenario) -> Result<ScenarioReport, AmmError> {
                 let p = pool.as_mut().ok_or(AmmError::EmptyPool)?;
                 let snap_before = PoolSnapshot::from_pool(p);
                 let result = add_liquidity(p, *amount_x, *amount_y)?;
-                // record position for the first LP
                 if lp_position.is_none() {
                     lp_position = Some((
                         format!("{actor:?}"),
@@ -198,6 +246,11 @@ pub fn run_scenario(scenario: &Scenario) -> Result<ScenarioReport, AmmError> {
                 let price_before = p.spot_price();
                 let arb_steps = run_arbitrage(p, external_price, *max_steps);
                 let price_after = p.spot_price();
+
+                for s in &arb_steps {
+                    arbitrage_steps.push(ArbitrageStepRecord::from_step(step, s));
+                }
+
                 let ev = ArbitrageEvent {
                     step,
                     steps_executed: arb_steps.len(),
@@ -220,14 +273,16 @@ pub fn run_scenario(scenario: &Scenario) -> Result<ScenarioReport, AmmError> {
                         actor: lp_actor.clone(),
                         withdraw_x: report.withdraw_x,
                         withdraw_y: report.withdraw_y,
+                        fee_income_value_in_y: report.fee_income_value_in_y,
                         hold_value_in_y: report.hold_value_in_y,
                         lp_value_in_y: report.lp_value_in_y,
                         impermanent_loss_pct: report.impermanent_loss_pct,
                         net_profit_loss_in_y: report.net_profit_loss_in_y,
                     };
                     log.push(format!(
-                        "[{step}] LpPerformance actor={} hold={:.2} lp={:.2} il={:.4}% net={:.2}",
+                        "[{step}] LpPerformance actor={} fee_proxy={:.2} hold={:.2} lp={:.2} il={:.4}% net={:.2}",
                         ev.actor,
+                        ev.fee_income_value_in_y,
                         ev.hold_value_in_y,
                         ev.lp_value_in_y,
                         ev.impermanent_loss_pct,
@@ -250,6 +305,7 @@ pub fn run_scenario(scenario: &Scenario) -> Result<ScenarioReport, AmmError> {
         final_pool: pool.as_ref().map(PoolSnapshot::from_pool),
         swap_events,
         arbitrage_events,
+        arbitrage_steps,
         lp_performance,
         log,
     })
@@ -283,6 +339,20 @@ pub fn write_csv_swaps(
     let mut wtr = csv::Writer::from_path(&path)?;
     for ev in &report.swap_events {
         wtr.serialize(ev)?;
+    }
+    wtr.flush()?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
+pub fn write_csv_arbitrage(
+    report: &ScenarioReport,
+    dir: &Path,
+) -> Result<String, Box<dyn std::error::Error>> {
+    std::fs::create_dir_all(dir)?;
+    let path = dir.join(format!("{}_arbitrage.csv", report.scenario_name));
+    let mut wtr = csv::Writer::from_path(&path)?;
+    for row in &report.arbitrage_steps {
+        wtr.serialize(row)?;
     }
     wtr.flush()?;
     Ok(path.to_string_lossy().into_owned())
