@@ -1,0 +1,26 @@
+{
+  "scenario_name": "campbell_sim",
+  "config": {
+    "name": "campbell_sim",
+    "description": "Campbell et al. (2025) AMM fee model — single GBM path",
+    "amm_fee": 0.003,
+    "cex_fee": 0.001,
+    "buy_demand": 100.0,
+    "sell_demand": 100.0,
+    "reserve_x": 1000000.0,
+    "reserve_y": 500.0,
+    "sigma": 0.04,
+    "mu": 0.0,
+    "n_steps": 1440,
+    "seed": 42
+  },
+  "n_steps": 1440,
+  "initial_cex_price": 2000.0,
+  "final_cex_price": 2033.8225000762686,
+  "final_amm_price": 2035.206916734513,
+  "final_pool_value": 2016840.4674183046,
+  "final_hedging_portfolio": 2017177.6295621023,
+  "total_fee_revenue": 390.78357890570885,
+  "tracking_error": 337.1621437976137,
+  "hedged_pnl": 53.62143510809517
+}

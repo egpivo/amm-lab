@@ -1,6 +1,7 @@
 pub mod actor;
 pub mod amount;
 pub mod arbitrage;
+pub mod campbell;
 pub mod error;
 pub mod ledger;
 pub mod liquidity;

@@ -1,0 +1,14 @@
+name = "campbell_sim"
+description = "Campbell et al. (2025) AMM fee model — single GBM path"
+
+amm_fee = 0.003
+cex_fee = 0.001
+buy_demand = 100.0
+sell_demand = 100.0
+reserve_x = 1_000_000.0
+reserve_y = 500.0
+
+sigma = 0.04
+mu = 0.0
+n_steps = 1440
+seed = 42
