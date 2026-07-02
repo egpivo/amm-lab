@@ -1,0 +1,4 @@
+policy,mean_delta_hedged_pnl,median_delta_hedged_pnl,p05_delta_hedged_pnl,pct_paths_beating_fixed6,mean_delta_lp_vs_hold,median_delta_lp_vs_hold,pct_paths_lp_vs_hold_beating_fixed6
+oracle_gap,15.2137,15.2133,11.4669,100.0,15.2364,15.1788,100.0
+inventory_gap,1.7772,1.7752,1.4870,100.0,1.7785,1.7759,100.0
+fixed_10bps,-202.9220,-202.9160,-215.8615,0.0,-203.0887,-203.0057,0.0
