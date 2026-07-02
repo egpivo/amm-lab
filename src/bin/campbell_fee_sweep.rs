@@ -1,3 +1,4 @@
+use amm_lab::campbell::fee_policy::FixedFeePolicy;
 use amm_lab::campbell::gbm::generate_gbm;
 use amm_lab::campbell::simulation::{SimConfig, run_simulation};
 use std::env;
@@ -30,8 +31,8 @@ fn main() {
         let amm_fee = fee_bps as f64 / 10_000.0;
         let mut sweep_config = config.clone();
         sweep_config.amm_fee = amm_fee;
-
-        let records = run_simulation(&sweep_config, &cex_prices);
+        let mut mul_policy = FixedFeePolicy::new(amm_fee);
+        let records = run_simulation(&sweep_config, &cex_prices, &mut mul_policy);
 
         let total_fee: f64 = records.iter().map(|r| r.step_fee).sum();
         let last = records.last().unwrap();

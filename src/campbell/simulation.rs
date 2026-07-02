@@ -1,3 +1,4 @@
+use crate::campbell::fee_policy::{FeeObservation, FeePolicy};
 use crate::campbell::pool::CampbellPool;
 use crate::campbell::trader::{arb_delta, fundamental_buy_delta, fundamental_sell_delta};
 use serde::{Deserialize, Serialize};
@@ -31,6 +32,11 @@ pub struct StepRecord {
     pub step_fee: f64,
     pub pool_value: f64,
     pub hedging_portfolio: f64,
+    pub pool_x: f64,
+    pub pool_y: f64,
+    pub fee_used: f64,
+    pub oracle_gap_bps: f64,
+    pub inventory_skew: f64,
 }
 
 #[derive(Debug, Serialize)]
@@ -48,7 +54,11 @@ pub struct SimSummary {
     pub hedged_pnl: f64,
 }
 
-pub fn run_simulation(config: &SimConfig, cex_prices: &[f64]) -> Vec<StepRecord> {
+pub fn run_simulation(
+    config: &SimConfig,
+    cex_prices: &[f64],
+    policy: &mut dyn FeePolicy,
+) -> Vec<StepRecord> {
     let mut pool = CampbellPool::new(config.reserve_x, config.reserve_y, config.amm_fee);
     let mut hedging = pool.pool_value(cex_prices[0]);
 
@@ -57,6 +67,20 @@ pub fn run_simulation(config: &SimConfig, cex_prices: &[f64]) -> Vec<StepRecord>
         let prev_cex = cex_prices[step];
         hedging += pool.reserve_y * (cex_price - prev_cex);
         let fee_before = pool.cumulative_fee_revenue;
+
+        let oracle_gap_bps = (pool.marginal_price() - cex_price) / cex_price * 10_000.0;
+        let inventory_skew = (pool.reserve_x - pool.reserve_y * cex_price)
+            / (pool.reserve_x + pool.reserve_y * cex_price);
+        let obs = FeeObservation {
+            step,
+            external_price: cex_price,
+            amm_price: pool.marginal_price(),
+            oracle_gap_bps,
+            inventory_skew,
+            recent_vol: 0.0,
+        };
+        let fee = policy.fee(&obs);
+        pool.amm_fee = fee;
 
         let arb_delta = arb_delta(&pool, cex_price, config.cex_fee);
         pool.apply_delta(arb_delta);
@@ -79,6 +103,11 @@ pub fn run_simulation(config: &SimConfig, cex_prices: &[f64]) -> Vec<StepRecord>
             step_fee,
             pool_value: pool.pool_value(cex_price),
             hedging_portfolio: hedging,
+            pool_x: pool.reserve_x,
+            pool_y: pool.reserve_y,
+            fee_used: fee,
+            oracle_gap_bps,
+            inventory_skew,
         });
     }
     records

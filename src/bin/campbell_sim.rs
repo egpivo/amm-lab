@@ -1,3 +1,4 @@
+use amm_lab::campbell::fee_policy::FixedFeePolicy;
 use amm_lab::campbell::gbm::generate_gbm;
 use amm_lab::campbell::simulation::{SimConfig, SimSummary, run_simulation};
 use std::env;
@@ -20,8 +21,8 @@ fn main() {
         1.0 / config.n_steps as f64,
         config.seed,
     );
-
-    let records = run_simulation(&config, &cex_prices);
+    let mut mul_policy = FixedFeePolicy::new(config.amm_fee);
+    let records = run_simulation(&config, &cex_prices, &mut mul_policy);
 
     let total_fee: f64 = records.iter().map(|r| r.step_fee).sum();
     let last = records.last().unwrap();
