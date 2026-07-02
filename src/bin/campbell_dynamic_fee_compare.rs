@@ -74,5 +74,70 @@ fn main() {
             .unwrap();
         }
     }
-    eprintln!("written: {csv_path}");
+    let step_csv_path = "data/processed/campbell_dynamic_fee_steps.csv";
+    let mut sf = fs::File::create(step_csv_path).unwrap();
+    writeln!(sf, "policy,step,external_price,amm_price,oracle_gap_bps,inventory_skew,recent_vol,fee_bps,trade_type,pool_x,pool_y,fee_revenue,lvr").unwrap();
+
+    let sample_prices = generate_gbm(
+        config.n_steps,
+        2000.0,
+        config.mu,
+        config.sigma,
+        1.0 / config.n_steps as f64,
+        config.seed,
+    );
+
+    for (policy_name, make_policy) in policies {
+        let mut policy = make_policy();
+        let records = run_simulation(&config, &sample_prices, &mut *policy);
+        for r in &records {
+            let vol = compute_recent_vol(&sample_prices, r.step, 20);
+            let trade_type = match (
+                r.arb_delta != 0.0,
+                r.buy_delta != 0.0 || r.sell_delta != 0.0,
+            ) {
+                (true, true) => "arb+fund",
+                (true, false) => "arb",
+                (false, true) => "fund",
+                (false, false) => "none",
+            };
+            let lvr = r.hedging_portfolio - r.pool_value;
+            writeln!(
+                sf,
+                "{},{},{:.6},{:.6},{:.4},{:.6},{:.8},{:.4},{},{:.4},{:.4},{:.6},{:.4}",
+                policy_name,
+                r.step,
+                r.cex_price,
+                r.amm_price,
+                r.oracle_gap_bps,
+                r.inventory_skew,
+                vol,
+                r.fee_used * 10_000.0,
+                trade_type,
+                r.pool_x,
+                r.pool_y,
+                r.step_fee,
+                lvr
+            )
+            .unwrap();
+        }
+    }
+    eprintln!("written: {csv_path}, {step_csv_path}");
+}
+
+fn compute_recent_vol(cex_prices: &[f64], step: usize, window: usize) -> f64 {
+    let lo = (step + 1).saturating_sub(window);
+    let slice = &cex_prices[lo..=step + 1];
+    if slice.len() < 2 {
+        return 0.0;
+    }
+    let n = (slice.len() - 1) as f64;
+    let (mut sum, mut sum_sq) = (0.0f64, 0.0f64);
+    for w in slice.windows(2) {
+        let lr = (w[1] / w[0]).ln();
+        sum += lr;
+        sum_sq += lr * lr;
+    }
+    let mean = sum / n;
+    ((sum_sq / n - mean * mean).max(0.0)).sqrt()
 }
