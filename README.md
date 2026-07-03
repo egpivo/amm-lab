@@ -27,11 +27,11 @@ Config: `scenarios/campbell_sim.toml` (shared across all three binaries).
 
 ## Dynamic Fee Policies — Baggiani-style
 
-Policy comparison across five fee strategies on 500 Monte Carlo paths.
+Policy comparison across four fee strategies on 500 Monte Carlo paths.
 
 | Binary | Output |
 |---|---|
-| `cargo run --release --bin campbell_dynamic_fee_sim` | `data/processed/campbell_sim_compare.csv`, `campbell_dynamic_fee_steps.csv` |
+| `cargo run --release --bin campbell_dynamic_fee_compare` | `data/processed/campbell_sim_compare.csv`, `campbell_dynamic_fee_steps.csv` |
 | `cargo run --bin campbell_policy_audit` | `data/processed/campbell_dynamic_fee_policy_audit.csv` |
 
 Policies: `fixed_6bps`, `fixed_10bps`, `oracle_gap`, `inventory_gap`.
