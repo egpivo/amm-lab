@@ -2,6 +2,7 @@ use crate::campbell::fee_policy::{FeeObservation, FeePolicy};
 use crate::campbell::pool::CampbellPool;
 use crate::campbell::trader::{arb_delta, fundamental_buy_delta, fundamental_sell_delta};
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimConfig {
@@ -63,6 +64,11 @@ pub fn run_simulation(
     let mut hedging = pool.pool_value(cex_prices[0]);
 
     let mut records = Vec::new();
+    const VOL_WINDOWS: usize = 20;
+    let mut log_rets: VecDeque<f64> = VecDeque::with_capacity(VOL_WINDOWS + 1);
+    let mut arb_flags: VecDeque<bool> = VecDeque::with_capacity(VOL_WINDOWS + 1);
+    let mut fund_flags: VecDeque<bool> = VecDeque::with_capacity(VOL_WINDOWS + 1);
+
     for (step, &cex_price) in cex_prices[1..].iter().enumerate() {
         let prev_cex = cex_prices[step];
         hedging += pool.reserve_y * (cex_price - prev_cex);
@@ -71,13 +77,19 @@ pub fn run_simulation(
         let oracle_gap_bps = (pool.marginal_price() - cex_price) / cex_price * 10_000.0;
         let inventory_skew = (pool.reserve_x - pool.reserve_y * cex_price)
             / (pool.reserve_x + pool.reserve_y * cex_price);
+        let recent_vol = rolling_std(&log_rets);
+        let recent_arb_frac = frac_true(&arb_flags);
+        let recent_fund_frac = frac_true(&fund_flags);
+
         let obs = FeeObservation {
             step,
             external_price: cex_price,
             amm_price: pool.marginal_price(),
             oracle_gap_bps,
             inventory_skew,
-            recent_vol: 0.0,
+            recent_vol,
+            recent_arb_frac,
+            recent_fund_frac,
         };
         let fee = policy.fee(&obs);
         pool.amm_fee = fee;
@@ -109,6 +121,40 @@ pub fn run_simulation(
             oracle_gap_bps,
             inventory_skew,
         });
+
+        let lr = (cex_price / prev_cex).ln();
+        if log_rets.len() == VOL_WINDOWS {
+            log_rets.pop_front();
+        }
+        log_rets.push_back(lr);
+
+        let was_arb = arb_delta.abs() > 1e-12;
+        if arb_flags.len() == VOL_WINDOWS {
+            arb_flags.pop_front();
+        }
+        arb_flags.push_back(was_arb);
+
+        let was_fund = (buy_delta.abs() + sell_delta.abs()) > 1e-12;
+        if fund_flags.len() == VOL_WINDOWS {
+            fund_flags.pop_front();
+        }
+        fund_flags.push_back(was_fund);
     }
     records
+}
+
+fn rolling_std(buf: &VecDeque<f64>) -> f64 {
+    if buf.len() < 2 {
+        return 0.0;
+    }
+    let n = buf.len() as f64;
+    let mean = buf.iter().sum::<f64>() / n;
+    (buf.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / n).sqrt()
+}
+
+fn frac_true(buf: &VecDeque<bool>) -> f64 {
+    if buf.is_empty() {
+        return 0.0;
+    }
+    buf.iter().filter(|&&b| b).count() as f64 / buf.len() as f64
 }
