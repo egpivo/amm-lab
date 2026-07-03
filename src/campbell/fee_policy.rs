@@ -2,7 +2,7 @@ use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::collections::HashMap;
 
-pub const RL_ACTIONS_BPS: [f64; 8] = [1.0, 3.0, 6.0, 10.0, 20.0, 30.0, 50.0, 100.0];
+pub const RL_ACTIONS_BPS: [f64; 8] = [3.0, 5.0, 6.0, 7.0, 8.0, 10.0, 12.0, 15.0];
 const N_ACTIONS: usize = 8;
 type QEntry = ([f64; N_ACTIONS], [u32; N_ACTIONS]);
 
