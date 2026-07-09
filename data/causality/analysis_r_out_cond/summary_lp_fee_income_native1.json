@@ -1,0 +1,1 @@
+{"outcome":"lp_fee_income_native1","transform":"asinh","t0":"2025-51","horizon":8,"matched_treated":779,"matched_control":303,"pool_weeks":17598,"clusters":1013,"cond_trends":"stratum","fe":"pool + stratum^week","joint_leads_p":0.003913,"lead_slope_p":0.440962,"max_abs_pre":0.201816,"orig_ci_lo":-0.241128,"orig_ci_hi":0.069548,"honestdid_breakdown_Mbar":"0.00"}

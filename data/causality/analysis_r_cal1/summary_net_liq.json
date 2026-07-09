@@ -1,0 +1,1 @@
+{"outcome":"net_liq","transform":"asinh","t0":"2025-51","horizon":8,"matched_treated":818,"matched_control":303,"pool_weeks":18230,"clusters":1044,"cond_trends":"none","fe":"pool + week","joint_leads_p":0.824475,"lead_slope_p":0.556206,"max_abs_pre":4.1977,"orig_ci_lo":-4.923978,"orig_ci_hi":3.218304,"honestdid_breakdown_Mbar":"0.00"}

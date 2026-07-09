@@ -1,0 +1,23 @@
+name        = "campbell_rl_regime_switch"
+description = """Regime-switching scenario. Alternates every 360 steps (quarter-year segments)
+between a fundamental-heavy regime (normal flow) and an arb-heavy regime where fundamental
+traders reduce to 20% of normal. The same oracle gap requires different fee responses across
+regimes. Oracle_gap heuristic is no longer sufficient; RL using gap + vol + flow has room
+to add value."""
+
+amm_fee     = 0.0006
+cex_fee     = 0.0010
+buy_demand  = 100.0
+sell_demand = 100.0
+reserve_x   = 1000.0
+reserve_y   = 1000.0
+sigma       = 0.04
+mu          = 0.0
+n_steps     = 1440
+seed        = 0
+
+flow_regime            = "regime_switch"
+toxic_burst_prob       = 0.0
+toxic_burst_arb_scale  = 1.0
+toxic_burst_fund_scale = 0.20
+regime_switch_period   = 360

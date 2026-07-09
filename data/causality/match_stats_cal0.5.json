@@ -1,0 +1,13 @@
+{
+ "caliper": 0.5,
+ "n_treated_main": 868,
+ "n_matched": 786,
+ "match_rate": 0.9055,
+ "n_candidate_controls": 622,
+ "n_controls_used": 314,
+ "n_unmatched": 82,
+ "control_reuse_max": 38,
+ "control_reuse_mean": 6.608,
+ "smd_logfr_before": 1.191,
+ "smd_logfr_after": 0.8421
+}

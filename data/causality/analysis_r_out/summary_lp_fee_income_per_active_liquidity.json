@@ -1,0 +1,1 @@
+{"outcome":"lp_fee_income_per_active_liquidity","transform":"asinh","t0":"2025-51","horizon":12,"matched_treated":786,"matched_control":314,"pool_weeks":25959,"clusters":1031,"joint_leads_p":0.999927,"lead_slope_p":0.317741,"max_abs_pre":0.000027,"orig_ci_lo":-3.040965e-06,"orig_ci_hi":9.361831e-06,"honestdid_breakdown_Mbar":"0.00"}
