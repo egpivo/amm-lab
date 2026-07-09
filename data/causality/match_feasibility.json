@@ -1,0 +1,123 @@
+{
+ "canonical_only": true,
+ "n_treated_main": 868,
+ "n_matched": 786,
+ "match_rate": 0.906,
+ "n_candidate_pure_controls": 622,
+ "n_controls_used": 314,
+ "n_unmatched": 82,
+ "smd_logfr_before": 1.191,
+ "smd_logfr_after": 0.842,
+ "smd_logsw_before": 1.069,
+ "smd_logsw_after": 0.809,
+ "caliper_sensitivity": {
+  "0.5": 786,
+  "1.0": 825,
+  "1.5": 833,
+  "2.0": 842
+ },
+ "match_by_tier_class": {
+  "100|other": 2,
+  "100|weth-pair": 1,
+  "10000|other": 69,
+  "10000|weth-pair": 375,
+  "3000|btc-pair": 4,
+  "3000|other": 77,
+  "3000|weth-pair": 238,
+  "500|other": 8,
+  "500|stable-stable": 1,
+  "500|weth-pair": 11
+ },
+ "top_unmatched": [
+  {
+   "pool": "0x4e68ccd3",
+   "fr12": 16110187,
+   "tier": "3000",
+   "class": "weth-pair"
+  },
+  {
+   "pool": "0x99ac8ca7",
+   "fr12": 8816014,
+   "tier": "3000",
+   "class": "btc-pair"
+  },
+  {
+   "pool": "0x8ad599c3",
+   "fr12": 5618620,
+   "tier": "3000",
+   "class": "weth-pair"
+  },
+  {
+   "pool": "0x88e6a0c2",
+   "fr12": 3510203,
+   "tier": "500",
+   "class": "weth-pair"
+  },
+  {
+   "pool": "0xcbcdf962",
+   "fr12": 2005676,
+   "tier": "3000",
+   "class": "weth-pair"
+  },
+  {
+   "pool": "0xa6cc3c25",
+   "fr12": 1882720,
+   "tier": "3000",
+   "class": "weth-pair"
+  },
+  {
+   "pool": "0x11b815ef",
+   "fr12": 1558416,
+   "tier": "500",
+   "class": "weth-pair"
+  },
+  {
+   "pool": "0x9db9e0e5",
+   "fr12": 1507676,
+   "tier": "3000",
+   "class": "btc-pair"
+  },
+  {
+   "pool": "0x99950bae",
+   "fr12": 1196303,
+   "tier": "500",
+   "class": "weth-pair"
+  },
+  {
+   "pool": "0x56534741",
+   "fr12": 1109279,
+   "tier": "500",
+   "class": "btc-pair"
+  },
+  {
+   "pool": "0xc7bbec68",
+   "fr12": 1098855,
+   "tier": "100",
+   "class": "weth-pair"
+  },
+  {
+   "pool": "0x5ab53ee1",
+   "fr12": 862148,
+   "tier": "3000",
+   "class": "weth-pair"
+  },
+  {
+   "pool": "0x433a0081",
+   "fr12": 677669,
+   "tier": "10000",
+   "class": "weth-pair"
+  },
+  {
+   "pool": "0x4585fe77",
+   "fr12": 581861,
+   "tier": "500",
+   "class": "weth-pair"
+  },
+  {
+   "pool": "0xe0554a47",
+   "fr12": 570194,
+   "tier": "100",
+   "class": "weth-pair"
+  }
+ ]
+}

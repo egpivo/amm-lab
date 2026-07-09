@@ -1,0 +1,56 @@
+{
+  "outcome": "vol1",
+  "transform": "asinh",
+  "prewin": 20,
+  "postwin": 8,
+  "nboots": 200,
+  "n_units": 1100,
+  "n_treated": 786,
+  "n_control": 314,
+  "n_obs": 30693,
+  "r_cv": 0,
+  "cv_mspe": {
+    "r0": 4.70783,
+    "r1": 5.51809,
+    "r2": 15.06237,
+    "r3": 20.63452,
+    "r4": 22.76497,
+    "r5": 23.65925,
+    "r6": 25.62143
+  },
+  "att": 0.104845,
+  "ci": [-0.147795, 0.357485],
+  "test_out": {
+    "f.stat": 4.973467,
+    "f.p": 0,
+    "f.threshold": 0.5,
+    "f.equiv.p": 0,
+    "df1": 20,
+    "df2": 740,
+    "N_bar": 760,
+    "tost.equiv.p": 0,
+    "tost.threshold": 0.689869
+  },
+  "leverage": {
+    "n": 1098,
+    "mean": 0.02029,
+    "sd": 0.4306,
+    "max_abs_dev_over_sd": 10.59
+  },
+  "placebo_att": 0.176449,
+  "placebo_p": null,
+  "factor_sensitivity": {
+    "r0": 0.10484,
+    "r1": -0.35724,
+    "r2": -0.59368
+  },
+  "mc_att": 0.10484,
+  "gate": {
+    "g1_prefit_pass": false,
+    "g2_placebo_flat": false,
+    "g3_no_leverage": false,
+    "g4_ci_reported_null": true,
+    "g5_factor_stable": false
+  },
+  "gate_pass_all": false
+}

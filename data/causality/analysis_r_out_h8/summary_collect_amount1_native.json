@@ -1,0 +1,1 @@
+{"outcome":"collect_amount1_native","transform":"asinh","t0":"2025-51","horizon":8,"matched_treated":779,"matched_control":303,"pool_weeks":17598,"clusters":1013,"cond_trends":"none","fe":"pool + week","joint_leads_p":0.147831,"lead_slope_p":0.022292,"max_abs_pre":0.576632,"orig_ci_lo":-0.443174,"orig_ci_hi":0.522509,"honestdid_breakdown_Mbar":"0.00"}

@@ -1,0 +1,1 @@
+{"outcome":"twl_active_liquidity","transform":"asinh","t0":"2025-51","horizon":8,"matched_treated":779,"matched_control":303,"pool_weeks":17598,"clusters":1013,"joint_leads_p":0.91187,"lead_slope_p":0.288947,"max_abs_pre":0.599055,"orig_ci_lo":-1.110862,"orig_ci_hi":0.331073,"honestdid_breakdown_Mbar":"0.00"}

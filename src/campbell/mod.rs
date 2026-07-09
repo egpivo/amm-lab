@@ -1,3 +1,4 @@
+pub mod fee_policy;
 pub mod gbm;
 pub mod pool;
 pub mod simulation;

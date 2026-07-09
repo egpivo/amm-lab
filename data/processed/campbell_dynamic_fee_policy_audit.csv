@@ -1,0 +1,5 @@
+policy,n_paths,mean_hedged_pnl,median_hedged_pnl,p05_hedged_pnl,p95_hedged_pnl,mean_fee_bps,median_fee_bps,p05_fee_bps,p95_fee_bps,corr_fee_bas_oracle_gap,corr_fee_abs_inventory_skew
+fixed_6bps,500,408.3835,408.8820,391.0916,425.9314,6.0000,6.0000,6.0000,6.0000,0.0000,0.0000
+fixed_10bps,500,205.4615,205.3563,195.4853,216.1176,10.0000,10.0000,10.0000,10.0000,0.0000,0.0000
+oracle_gap,500,423.5972,423.7286,408.0620,439.5825,6.8795,6.8798,6.8514,6.9072,1.0000,1.0000
+inventory_gap,500,410.1607,410.6514,393.0539,427.6662,6.0450,6.0450,6.0435,6.0464,1.0000,1.0000
