@@ -7,18 +7,15 @@ m3_trajectories.png, m3_dqn_curve.png, m3_learner_results.csv, and printed
 paired stats + behavior table (paste into notes).
 """
 
-from __future__ import annotations
-
-import csv
-import random
 from collections import defaultdict
-from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-OUT = Path(__file__).resolve().parents[2] / "experiments/rl_execution/out"
+from common import OUT, bootstrap_ci, read_csv, write_csv
+
 COLORS = {
     "twap": "#efb118",
     "fee_aware_twap": "#6cc5b0",
@@ -32,37 +29,25 @@ COLORS = {
 }
 
 
-def read(path: Path) -> list[dict]:
-    with open(path) as f:
-        return list(csv.DictReader(f))
-
-
 def style(ax):
     ax.spines[["top", "right"]].set_visible(False)
     ax.grid(True, axis="x", alpha=0.25, linewidth=0.5)
     ax.set_axisbelow(True)
 
 
-def boot_ci(vals, n_boot=2000, seed=0):
-    rng = random.Random(seed)
-    n = len(vals)
-    means = sorted(sum(rng.choices(vals, k=n)) / n for _ in range(n_boot))
-    return means[int(0.025 * n_boot)], means[int(0.975 * n_boot)]
-
-
 def load_all() -> dict[str, dict[str, dict]]:
     """policy -> seed -> row (DynamicDuopoly test seeds)."""
     data: dict[str, dict[str, dict]] = defaultdict(dict)
-    for r in read(OUT / "m1_results.csv"):
+    for r in read_csv(OUT / "m1_results.csv"):
         if r["mode"] == "DynamicDuopoly":
             data[r["policy"]][r["seed"]] = r
-    for r in read(OUT / "m3_fine_results.csv"):
+    for r in read_csv(OUT / "m3_fine_results.csv"):
         if r["mode"] == "DynamicDuopoly" and r["policy"] == "q_learner_fine":
             data[r["policy"]][r["seed"]] = r
-    for r in read(OUT / "m3_dqn_results.csv"):
+    for r in read_csv(OUT / "m3_dqn_results.csv"):
         if r["seed_set"] == "test":
             data["dqn"][r["seed"]] = r
-    for r in read(OUT / "m3_value_boundary.csv"):
+    for r in read_csv(OUT / "m3_value_boundary.csv"):
         if r["policy"] in ("two_step", "three_step", "clairvoyant"):
             data[r["policy"]][r["seed"]] = r
     return data
@@ -70,15 +55,26 @@ def load_all() -> dict[str, dict[str, dict]]:
 
 def paired(data, a: str, b: str) -> tuple[float, float, float]:
     seeds = sorted(set(data[a]) & set(data[b]))
-    diffs = [float(data[a][s]["shortfall_bps"]) - float(data[b][s]["shortfall_bps"])
-             for s in seeds]
-    lo, hi = boot_ci(diffs)
+    diffs = [
+        float(data[a][s]["shortfall_bps"]) - float(data[b][s]["shortfall_bps"])
+        for s in seeds
+    ]
+    lo, hi = bootstrap_ci(diffs)
     return sum(diffs) / len(diffs), lo, hi
 
 
 def fig_ladder(data) -> None:
-    order = ["twap", "fee_aware_twap", "two_step", "three_step", "lookahead",
-             "q_learner", "q_learner_fine", "dqn", "clairvoyant"]
+    order = [
+        "twap",
+        "fee_aware_twap",
+        "two_step",
+        "three_step",
+        "lookahead",
+        "q_learner",
+        "q_learner_fine",
+        "dqn",
+        "clairvoyant",
+    ]
     fig, ax = plt.subplots(figsize=(9, 5))
     names, means = [], []
     for p in order:
@@ -86,16 +82,19 @@ def fig_ladder(data) -> None:
             continue
         vals = [float(r["shortfall_bps"]) for r in data[p].values()]
         m = sum(vals) / len(vals)
-        lo, hi = boot_ci(vals)
+        lo, hi = bootstrap_ci(vals)
         names.append(p)
         means.append(m)
         ax.barh(p, m, color=COLORS[p], height=0.62)
-        ax.errorbar([m], [p], xerr=[[m - lo], [hi - m]], fmt="none",
-                    ecolor="#333333", capsize=3)
+        ax.errorbar(
+            [m], [p], xerr=[[m - lo], [hi - m]], fmt="none", ecolor="#333333", capsize=3
+        )
         ax.text(m + 1.5, p, f"{m:.1f}", va="center", fontsize=9, color="#333333")
     ax.invert_yaxis()
     ax.set_xlabel("implementation shortfall (bps), held-out seeds")
-    ax.set_title("M3 value ladder, DynamicDuopoly (clairvoyant sees future shocks; not a policy)")
+    ax.set_title(
+        "M3 value ladder, DynamicDuopoly (clairvoyant sees future shocks; not a policy)"
+    )
     style(ax)
     fig.tight_layout()
     fig.savefig(OUT / "m3_learners.png", dpi=150)
@@ -104,9 +103,12 @@ def fig_ladder(data) -> None:
 
 def fig_boundary(data) -> None:
     fig, ax = plt.subplots(figsize=(8.5, 4.2))
-    groups = [("schedule", ["twap"]), ("planning", ["two_step", "three_step", "lookahead"]),
-              ("learning", ["q_learner", "q_learner_fine", "dqn"]),
-              ("hindsight bound", ["clairvoyant"])]
+    groups = [
+        ("schedule", ["twap"]),
+        ("planning", ["two_step", "three_step", "lookahead"]),
+        ("learning", ["q_learner", "q_learner_fine", "dqn"]),
+        ("hindsight bound", ["clairvoyant"]),
+    ]
     x = 0
     ticks, labels = [], []
     for gname, ps in groups:
@@ -115,18 +117,29 @@ def fig_boundary(data) -> None:
                 continue
             vals = [float(r["shortfall_bps"]) for r in data[p].values()]
             m = sum(vals) / len(vals)
-            lo, hi = boot_ci(vals)
-            ax.errorbar([x], [m], yerr=[[m - lo], [hi - m]], fmt="o",
-                        color=COLORS[p], capsize=4, markersize=7)
+            lo, hi = bootstrap_ci(vals)
+            ax.errorbar(
+                [x],
+                [m],
+                yerr=[[m - lo], [hi - m]],
+                fmt="o",
+                color=COLORS[p],
+                capsize=4,
+                markersize=7,
+            )
             ticks.append(x)
             labels.append(p)
             x += 1
         x += 0.6
-    la = sum(float(r["shortfall_bps"]) for r in data["lookahead"].values()) / len(data["lookahead"])
+    la = sum(float(r["shortfall_bps"]) for r in data["lookahead"].values()) / len(
+        data["lookahead"]
+    )
     ax.axhline(la, color=COLORS["lookahead"], lw=0.8, linestyle="--", alpha=0.6)
     ax.set_xticks(ticks, labels, rotation=20, fontsize=9)
     ax.set_ylabel("shortfall (bps)")
-    ax.set_title("M3B: schedule vs planning vs learning vs hindsight (dashed = tuned lookahead)")
+    ax.set_title(
+        "M3B: schedule vs planning vs learning vs hindsight (dashed = tuned lookahead)"
+    )
     ax.grid(True, axis="y", alpha=0.25, linewidth=0.5)
     ax.spines[["top", "right"]].set_visible(False)
     fig.tight_layout()
@@ -135,10 +148,10 @@ def fig_boundary(data) -> None:
 
 
 def fig_behavior_state() -> None:
-    rows = read(OUT / "m3_fine_actions.csv")
+    rows = read_csv(OUT / "m3_fine_actions.csv")
     dqn_path = OUT / "m3_dqn_actions.csv"
     if dqn_path.exists():
-        rows += read(dqn_path)
+        rows += read_csv(dqn_path)
         learner = "dqn"
     else:
         learner = "q_learner_fine"
@@ -150,9 +163,13 @@ def fig_behavior_state() -> None:
     for pol in [learner, "lookahead"]:
         shares = []
         for lo, hi in gap_bins:
-            sel = [r for r in rows if r["policy"] == pol
-                   and lo <= float(r["min_oracle_gap_bps"]) < hi
-                   and float(r["remaining_frac"]) > 1e-6]
+            sel = [
+                r
+                for r in rows
+                if r["policy"] == pol
+                and lo <= float(r["min_oracle_gap_bps"]) < hi
+                and float(r["remaining_frac"]) > 1e-6
+            ]
             shares.append(sum(1 for r in sel if r["action"] == "0") / max(1, len(sel)))
         ax.plot(gap_labels, shares, marker="o", color=COLORS[pol], label=pol)
     ax.set_xlabel("best pool oracle gap (bps; negative = pool cheap)")
@@ -166,9 +183,13 @@ def fig_behavior_state() -> None:
     for pol in [learner, "lookahead"]:
         shares = []
         for lo, hi in fee_bins:
-            sel = [r for r in rows if r["policy"] == pol
-                   and lo <= float(r["buy_fee_gap_bps"]) < hi
-                   and r["action"] in ("1", "3", "5", "2", "4", "6")]
+            sel = [
+                r
+                for r in rows
+                if r["policy"] == pol
+                and lo <= float(r["buy_fee_gap_bps"]) < hi
+                and r["action"] in ("1", "3", "5", "2", "4", "6")
+            ]
             a_routed = sum(1 for r in sel if r["action"] in ("1", "3", "5"))
             shares.append(a_routed / max(1, len(sel)))
         ax.plot(fee_labels, shares, marker="o", color=COLORS[pol], label=pol)
@@ -188,17 +209,27 @@ def fig_behavior_state() -> None:
 def fig_trajectories(seeds: dict[str, str]) -> None:
     fig, axes = plt.subplots(1, 3, figsize=(13, 4), sharey=True)
     for ax, (label, seed) in zip(axes, seeds.items()):
-        for pol, fname, color in [("dqn", f"m3_traj_dqn_{seed}.csv", COLORS["dqn"]),
-                                  ("lookahead", f"m3_traj_lookahead_{seed}.csv", COLORS["lookahead"])]:
-            rows = read(OUT / fname)
-            ax.plot([int(r["step"]) for r in rows],
-                    [float(r["remaining_after"]) for r in rows],
-                    color=color, lw=1.6, label=pol)
+        for pol, fname, color in [
+            ("dqn", f"m3_traj_dqn_{seed}.csv", COLORS["dqn"]),
+            ("lookahead", f"m3_traj_lookahead_{seed}.csv", COLORS["lookahead"]),
+        ]:
+            rows = read_csv(OUT / fname)
+            ax.plot(
+                [int(r["step"]) for r in rows],
+                [float(r["remaining_after"]) for r in rows],
+                color=color,
+                lw=1.6,
+                label=pol,
+            )
         ax2 = ax.twinx()
-        rows = read(OUT / f"m3_traj_lookahead_{seed}.csv")
-        ax2.plot([int(r["step"]) for r in rows],
-                 [float(r["oracle_price"]) for r in rows],
-                 color="#999999", lw=0.9, alpha=0.8)
+        rows = read_csv(OUT / f"m3_traj_lookahead_{seed}.csv")
+        ax2.plot(
+            [int(r["step"]) for r in rows],
+            [float(r["oracle_price"]) for r in rows],
+            color="#999999",
+            lw=0.9,
+            alpha=0.8,
+        )
         ax2.set_yticks([])
         ax.set_title(f"{label} (seed {seed})", fontsize=10)
         ax.set_xlabel("step")
@@ -213,13 +244,23 @@ def fig_trajectories(seeds: dict[str, str]) -> None:
 
 
 def fig_curve() -> None:
-    rows = read(OUT / "m3_dqn_curve.csv")
+    rows = read_csv(OUT / "m3_dqn_curve.csv")
     fig, ax = plt.subplots(figsize=(7, 3.6))
-    ax.plot([int(r["episode"]) for r in rows],
-            [float(r["val_shortfall_bps"]) for r in rows],
-            color=COLORS["dqn"], marker="o", markersize=3, lw=1.3)
-    ax.axhline(99.8, color=COLORS["lookahead"], lw=0.9, linestyle="--",
-               label="lookahead (test)")
+    ax.plot(
+        [int(r["episode"]) for r in rows],
+        [float(r["val_shortfall_bps"]) for r in rows],
+        color=COLORS["dqn"],
+        marker="o",
+        markersize=3,
+        lw=1.3,
+    )
+    ax.axhline(
+        99.8,
+        color=COLORS["lookahead"],
+        lw=0.9,
+        linestyle="--",
+        label="lookahead (test)",
+    )
     ax.set_xlabel("training episode")
     ax.set_ylabel("validation shortfall (bps)")
     ax.set_title("DQN training curve (greedy eval on 50 validation seeds)")
@@ -232,9 +273,17 @@ def fig_curve() -> None:
 
 
 def behavior_table(data) -> None:
-    cols = ["shortfall_bps", "completion_rate", "wait_share", "route_share_a",
-            "fee_paid_bps", "gas_paid_bps", "slippage_ex_fee_bps", "drift_bps",
-            "terminal_penalty_bps"]
+    cols = [
+        "shortfall_bps",
+        "completion_rate",
+        "wait_share",
+        "route_share_a",
+        "fee_paid_bps",
+        "gas_paid_bps",
+        "slippage_ex_fee_bps",
+        "drift_bps",
+        "terminal_penalty_bps",
+    ]
     print("\n=== M3C behavior table (DynamicDuopoly test means) ===")
     print(f"{'policy':<16}" + "".join(f"{c[:12]:>13}" for c in cols))
     for p in ["twap", "lookahead", "q_learner", "q_learner_fine", "dqn"]:
@@ -249,16 +298,31 @@ def behavior_table(data) -> None:
 
 def main() -> None:
     data = load_all()
-    # merged per-seed results file for the record
-    with open(OUT / "m3_learner_results.csv", "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["policy", "seed", "shortfall_bps", "completion_rate"])
-        for p, seeds in data.items():
-            for s, r in sorted(seeds.items()):
-                w.writerow([p, s, r["shortfall_bps"], r["completion_rate"]])
+    result_rows = [
+        {
+            "policy": policy,
+            "seed": seed,
+            "shortfall_bps": row["shortfall_bps"],
+            "completion_rate": row["completion_rate"],
+        }
+        for policy, seeds in data.items()
+        for seed, row in sorted(seeds.items())
+    ]
+    write_csv(
+        OUT / "m3_learner_results.csv",
+        ["policy", "seed", "shortfall_bps", "completion_rate"],
+        result_rows,
+    )
 
     print("=== paired vs lookahead (negative favors row policy) ===")
-    for p in ["q_learner", "q_learner_fine", "dqn", "two_step", "three_step", "clairvoyant"]:
+    for p in [
+        "q_learner",
+        "q_learner_fine",
+        "dqn",
+        "two_step",
+        "three_step",
+        "clairvoyant",
+    ]:
         if p in data:
             m, lo, hi = paired(data, p, "lookahead")
             print(f"{p:<16} {m:+7.2f} bps  95% CI [{lo:+.2f}, {hi:+.2f}]")

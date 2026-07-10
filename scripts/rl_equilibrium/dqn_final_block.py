@@ -11,22 +11,13 @@ out/m3r_final_paper_seeds.csv. Baseline rows come from
 Usage: python dqn_final_block.py
 """
 
-from __future__ import annotations
-
-import csv
-from pathlib import Path
-
-import torch
-
-from dqn_train import QNet, normalize, reset_env
+from common import OUT, write_csv
+from dqn_core import greedy_episode, load_q_network
 from gym_env import AmmExecutionEnv
 
-OUT = Path(__file__).resolve().parents[2] / "experiments/rl_execution/out"
 FT = {"completion_rule": "forced_terminal"}
 BASE, N = 90_000, 1_000
 
-# (checkpoint tag, evaluation ordering) — each checkpoint is evaluated
-# under the ordering it was trained for.
 CELLS = [
     ("order_random", "random"),
     ("dynamic_duopoly", "before"),
@@ -35,35 +26,53 @@ CELLS = [
 
 
 def main() -> None:
-    env = AmmExecutionEnv(mode="dynamic_duopoly")
-    with open(OUT / "m3r_final_paper_seeds.csv", "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["policy", "agent_order", "seed", "shortfall_bps",
-                    "completion_rate", "forced_terminal_cost_bps", "wait_share"])
+    rows = []
+    with AmmExecutionEnv(mode="dynamic_duopoly") as env:
         for tag, order in CELLS:
-            net = QNet(env.obs_dim, env.n_actions)
-            net.load_state_dict(torch.load(OUT / f"dqn_{tag}.pt", weights_only=True))
-            net.eval()
+            net = load_q_network(env, tag)
             agg = [0.0, 0.0]
             for seed in range(BASE, BASE + N):
-                obs = reset_env(env, seed, "dynamic_duopoly",
-                                agent_order=order, **FT)
-                done, info = False, {}
-                while not done:
-                    with torch.no_grad():
-                        a = int(net(normalize(obs)).argmax())
-                    obs, _, done, _, info = env.step(a)
-                s = info["summary"]
-                w.writerow([f"dqn_{tag}", order, seed,
-                            round(s["shortfall_bps"], 4),
-                            round(s["completion_rate"], 6),
-                            round(s["forced_terminal_cost_bps"], 4),
-                            round(s["wait_share"], 4)])
-                agg[0] += s["shortfall_bps"]
-                agg[1] += s["completion_rate"]
-            print(f"final dqn_{tag:<18} order={order:<7} IS {agg[0]/N:8.2f} "
-                  f"comp {agg[1]/N:.4f}", flush=True)
-    env.close()
+                summary = greedy_episode(
+                    env,
+                    net,
+                    seed,
+                    "dynamic_duopoly",
+                    agent_order=order,
+                    **FT,
+                )
+                rows.append(
+                    {
+                        "policy": f"dqn_{tag}",
+                        "agent_order": order,
+                        "seed": seed,
+                        "shortfall_bps": round(summary["shortfall_bps"], 4),
+                        "completion_rate": round(summary["completion_rate"], 6),
+                        "forced_terminal_cost_bps": round(
+                            summary["forced_terminal_cost_bps"], 4
+                        ),
+                        "wait_share": round(summary["wait_share"], 4),
+                    }
+                )
+                agg[0] += summary["shortfall_bps"]
+                agg[1] += summary["completion_rate"]
+            print(
+                f"final dqn_{tag:<18} order={order:<7} IS {agg[0] / N:8.2f} "
+                f"comp {agg[1] / N:.4f}",
+                flush=True,
+            )
+    write_csv(
+        OUT / "m3r_final_paper_seeds.csv",
+        [
+            "policy",
+            "agent_order",
+            "seed",
+            "shortfall_bps",
+            "completion_rate",
+            "forced_terminal_cost_bps",
+            "wait_share",
+        ],
+        rows,
+    )
 
 
 if __name__ == "__main__":
