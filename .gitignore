@@ -25,3 +25,8 @@ target
 # Added by cargo
 
 /target
+
+.env
+experiments/
+*.log
+.claude/

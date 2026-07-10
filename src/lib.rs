@@ -8,5 +8,6 @@ pub mod liquidity;
 pub mod lp_accounting;
 pub mod pool;
 pub mod scenario;
+pub mod sim;
 pub mod swap;
 pub mod transaction;
