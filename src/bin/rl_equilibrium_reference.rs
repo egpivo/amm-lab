@@ -19,10 +19,83 @@ struct Args {
     seed_base: Option<u64>,
     #[arg(long, default_value = "final")]
     seed_label: String,
+    /// Re-run the lookahead kappa validation grid per intra-step ordering
+    /// (dynamic duopoly, validation seeds 20,000-20,199) and exit.
+    #[arg(long, default_value_t = false)]
+    tune_kappa: bool,
+    /// Lookahead carry parameter (default matches the frozen M3R runs).
+    #[arg(long, default_value_t = 16.0)]
+    kappa: f64,
+}
+
+fn tune_kappa(horizon: usize) {
+    let cells = [
+        (
+            MarketMode::DynamicDuopoly,
+            AgentOrder::Before,
+            "dynamic/before",
+        ),
+        (
+            MarketMode::DynamicDuopoly,
+            AgentOrder::Random,
+            "dynamic/random",
+        ),
+        (
+            MarketMode::DynamicDuopoly,
+            AgentOrder::After,
+            "dynamic/after",
+        ),
+        (
+            MarketMode::ConstantDuopoly,
+            AgentOrder::Before,
+            "constant/before",
+        ),
+        (
+            MarketMode::DynamicMonopoly,
+            AgentOrder::Before,
+            "monopoly/before",
+        ),
+    ];
+    for (mode, order, order_name) in cells {
+        let mut best = (f64::NAN, f64::INFINITY);
+        for kappa in [4.0, 8.0, 16.0, 32.0] {
+            let mut sum = 0.0;
+            for seed in 20_000u64..20_200 {
+                let mut cfg = EnvConfig::baseline(mode, seed);
+                cfg.agent_order = order;
+                cfg.completion_rule = CompletionRule::ForcedTerminal;
+                let mut la = LookaheadPolicy {
+                    horizon,
+                    kappa,
+                    unfinished_penalty: 0.02,
+                };
+                let mut env = ExecEnv::new(cfg);
+                la.reset();
+                while !env.is_done() {
+                    let a = la.act(&env.observe());
+                    env.step(a);
+                }
+                sum += env.summary("lookahead").shortfall_bps;
+            }
+            let mean = sum / 200.0;
+            println!("{order_name} kappa={kappa}: val IS {mean:.2}");
+            if mean < best.1 {
+                best = (kappa, mean);
+            }
+        }
+        println!("{order_name}: selected kappa={}", best.0);
+    }
 }
 
 fn main() {
     let args = Args::parse();
+    if args.tune_kappa {
+        let horizon = EnvConfig::baseline(MarketMode::DynamicDuopoly, 0)
+            .order
+            .horizon;
+        tune_kappa(horizon);
+        return;
+    }
     let horizon = EnvConfig::baseline(MarketMode::DynamicDuopoly, 0)
         .order
         .horizon;
@@ -64,7 +137,7 @@ fn main() {
                     cfg.completion_rule = CompletionRule::ForcedTerminal;
                     let mut la = LookaheadPolicy {
                         horizon,
-                        kappa: 16.0,
+                        kappa: args.kappa,
                         unfinished_penalty: 0.02,
                     };
                     let mut tw = TwapPolicy { horizon };

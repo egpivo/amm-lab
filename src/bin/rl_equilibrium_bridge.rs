@@ -9,7 +9,7 @@
 //!   -> {"cmd": "close"}
 //!
 //! On startup emits {"type": "hello", "n_actions": 8, "obs_dim": D}.
-//! See experiments/rl_execution/gym_env.py for the Python wrapper.
+//! See scripts/rl_equilibrium/gym_env.py for the Python wrapper.
 
 use amm_lab::sim::env::{EnvConfig, ExecEnv, MarketMode, N_ACTIONS};
 use serde_json::{Value, json};

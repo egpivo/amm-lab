@@ -1,5 +1,10 @@
-"""Paper Figure 1: the benchmark ladder on the final untouched seed block
+"""Paper Figure: the benchmark ladder on the final reserved seed block
 (90,000-90,999), forced-terminal completion, agent-first ordering.
+
+Style matches the blog ladder (zen palette, hatched non-deployable
+reference, readable policy labels) with two paper-specific differences:
+white background and 95% bootstrap CI whiskers, which the paper caption
+promises.
 
 Inputs: out/final_ladder.csv (Rust policies + clairvoyant),
 out/m3r_stochastic_planner_final.csv, out/m3r_final_paper_seeds.csv (DQN).
@@ -13,16 +18,31 @@ import matplotlib.pyplot as plt
 
 from common import OUT, bootstrap_ci, read_csv
 
+TEXT = "#2B2B2B"
+SECONDARY = "#5F6368"
+GRID = "#D9D7D1"
+
 COLORS = {
-    "twap": "#efb118",
-    "two_step": "#9c6b4e",
-    "stochastic_planner": "#6cc5b0",
-    "three_step": "#3ca951",
-    "lookahead": "#a463f2",
-    "q_learner": "#ff8ab7",
-    "q_learner_fine": "#ff725c",
-    "dqn": "#4269d0",
-    "clairvoyant": "#555555",
+    "twap": "#B7905E",
+    "two_step": "#9A7B45",
+    "stochastic_planner": "#7C8A78",
+    "three_step": "#6A8F73",
+    "lookahead": "#8A6799",
+    "q_learner": "#7A8A9A",
+    "q_learner_fine": "#5F7A8A",
+    "dqn": "#4C6A91",
+    "clairvoyant": "#7A7A7A",
+}
+LABELS = {
+    "twap": "TWAP",
+    "two_step": "Two-step planner",
+    "stochastic_planner": "Stochastic planner",
+    "three_step": "Three-step planner",
+    "lookahead": "Tuned one-step lookahead",
+    "q_learner": "Q-learner",
+    "q_learner_fine": "Q-learner (fine)",
+    "dqn": "DQN",
+    "clairvoyant": "Achieved hindsight reference",
 }
 ORDER = [
     "twap",
@@ -48,27 +68,76 @@ def main() -> None:
         if r["policy"] == "dqn_dynamic_duopoly" and r["agent_order"] == "before":
             vals.setdefault("dqn", []).append(float(r["shortfall_bps"]))
 
-    fig, ax = plt.subplots(figsize=(9, 5))
+    plt.rcParams.update(
+        {
+            "font.family": "sans-serif",
+            "font.sans-serif": [
+                "Inter",
+                "Source Sans 3",
+                "Arial",
+                "Helvetica",
+                "DejaVu Sans",
+            ],
+            "axes.labelcolor": TEXT,
+            "axes.edgecolor": GRID,
+            "xtick.color": TEXT,
+            "ytick.color": TEXT,
+        }
+    )
+
+    means, lows, highs = [], [], []
     for p in ORDER:
         v = vals[p]
         m = sum(v) / len(v)
         lo, hi = bootstrap_ci(v)
-        ax.barh(p, m, color=COLORS[p], height=0.62)
-        ax.errorbar(
-            [m], [p], xerr=[[m - lo], [hi - m]], fmt="none", ecolor="#333333", capsize=3
-        )
-        ax.text(m + 1.8, p, f"{m:.1f}", va="center", fontsize=9, color="#333333")
-    ax.invert_yaxis()
-    ax.set_xlabel("implementation shortfall (bps), final untouched seeds 90000-90999")
-    ax.set_title(
-        "Benchmark ladder, forced-terminal completion, agent-first ordering\n"
-        "(clairvoyant sees future shocks; not a policy)"
+        means.append(m)
+        lows.append(m - lo)
+        highs.append(hi - m)
+
+    fig, ax = plt.subplots(figsize=(10.5, 6), dpi=200)
+    y = list(range(len(ORDER)))
+    bars = ax.barh(
+        y, means, color=[COLORS[p] for p in ORDER], height=0.62, zorder=3
     )
+    hatched = bars[ORDER.index("clairvoyant")]
+    hatched.set_hatch("////")
+    hatched.set_edgecolor(SECONDARY)
+    hatched.set_linewidth(0.6)
+    ax.errorbar(
+        means,
+        y,
+        xerr=[lows, highs],
+        fmt="none",
+        ecolor=TEXT,
+        elinewidth=1.0,
+        capsize=3,
+        zorder=4,
+    )
+
+    xmax = max(means) * 1.14
+    ax.set_xlim(0, xmax)
+    ax.set_yticks(y, [LABELS[p] for p in ORDER], fontsize=16)
+    ax.invert_yaxis()
+    for yi, m in zip(y, means):
+        ax.text(
+            m + xmax * 0.018,
+            yi,
+            f"{m:.1f}",
+            va="center",
+            ha="left",
+            fontsize=15,
+            color=TEXT,
+        )
+
+    ax.set_xlabel("Implementation shortfall (bps)", fontsize=16, labelpad=8)
+    ax.grid(axis="x", color=GRID, linewidth=0.8, zorder=0)
     ax.spines[["top", "right"]].set_visible(False)
-    ax.grid(True, axis="x", alpha=0.25, linewidth=0.5)
-    ax.set_axisbelow(True)
+    ax.spines["left"].set_color(GRID)
+    ax.spines["bottom"].set_color(GRID)
+    ax.tick_params(axis="y", length=0)
+    ax.tick_params(axis="x", labelsize=14)
     fig.tight_layout()
-    fig.savefig(OUT / "final_ladder.png", dpi=150)
+    fig.savefig(OUT / "final_ladder.png", bbox_inches="tight")
     print({p: round(sum(v) / len(v), 2) for p, v in vals.items() if p in ORDER})
 
 

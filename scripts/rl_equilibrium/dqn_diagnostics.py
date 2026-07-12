@@ -1,7 +1,7 @@
 """M3: artifact diagnostics for the frozen DQN checkpoint.
 
 Evaluates the selected checkpoint greedily under perturbed environments on
-the same 300 test seeds as run_m2_diagnostics, writing rows compatible with
+the same 300 test seeds as rl_equilibrium_artifact_battery, writing rows compatible with
 m2_diagnostics.csv so lookahead/twap references can be reused.
 
 Usage: python dqn_diagnostics.py [--n-seeds 300]

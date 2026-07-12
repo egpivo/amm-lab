@@ -27,6 +27,8 @@ target
 /target
 
 .env
-experiments/
+# RL-equilibrium generated artifacts only (README under experiments/ is tracked)
+experiments/**/out/
 *.log
+**/__pycache__/
 .claude/

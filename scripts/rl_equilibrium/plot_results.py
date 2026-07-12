@@ -1,7 +1,7 @@
 """Diagnostic figures for the execution-routing simulator.
 
-Reads the CSVs produced by `run_execution_sim` and `run_baselines` and writes
-three figures to out/:
+Reads CSVs in experiments/rl_execution/out/ (e.g. from rl_equilibrium_sim,
+rl_equilibrium_train_tabular) and writes figures to out/:
   1. trajectory.png  - oracle vs pool mids, fees, remaining inventory, actions
   2. shortfall.png   - implementation shortfall by policy x market mode
   3. sensitivity.png - TWAP shortfall over volatility x arb-speed grid

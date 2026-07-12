@@ -350,6 +350,7 @@ fn run_episode(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_observation(
     step: usize,
     cex_price: f64,

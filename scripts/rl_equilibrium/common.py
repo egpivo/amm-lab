@@ -9,7 +9,7 @@ from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-OUT = REPO_ROOT / "experiments/rl_execution/out"
+OUT = REPO_ROOT / "data/rl_equilibrium"
 
 CsvRow = dict[str, str]
 
