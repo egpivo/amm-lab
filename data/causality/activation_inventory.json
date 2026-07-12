@@ -1,0 +1,19 @@
+{
+ "raw_setfeeprotocol_events": 2649,
+ "canonical_v3_treated_pools": 2638,
+ "fork_or_excluded_events": 11,
+ "canonical_factory": "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+ "activation_burst_utc": "2025-12-27 20:51 UTC",
+ "intensity_by_tier": {
+  "100": "1/4",
+  "500": "1/4",
+  "3000": "1/6",
+  "10000": "1/6"
+ },
+ "tier_counts_in_burst": {
+  "10000": 1474,
+  "3000": 877,
+  "500": 192,
+  "100": 95
+ }
+}

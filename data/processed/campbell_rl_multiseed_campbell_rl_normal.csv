@@ -1,0 +1,6 @@
+scenario,train_seed,rl_mean_pnl,og_mean_pnl,paired_delta,pct_delta,beat_pct
+campbell_rl_normal,0,0.4597,0.4239,0.0358,8.44,100.0
+campbell_rl_normal,42,0.4819,0.4239,0.0580,13.69,100.0
+campbell_rl_normal,123,0.4649,0.4239,0.0411,9.69,100.0
+campbell_rl_normal,456,0.4563,0.4239,0.0325,7.66,100.0
+campbell_rl_normal,789,0.4743,0.4239,0.0505,11.90,100.0

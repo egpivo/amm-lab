@@ -12,6 +12,11 @@ import matplotlib.pyplot as plt
 from common import OUT, read_csv
 
 ORDERS = ["before", "random", "after"]
+ORDER_LABELS = {
+    "before": "agent-first",
+    "random": "randomized",
+    "after": "agent-last",
+}
 
 
 def fig_priority_heatmap() -> None:
@@ -59,16 +64,20 @@ def fig_priority_heatmap() -> None:
                     fontsize=10,
                     color="#1f1f1f",
                 )
-        ax.set_xticks(range(3), [f"test: {o}" for o in ORDERS], fontsize=9)
-        ax.set_yticks(range(3), [f"train: {o}" for o in ORDERS], fontsize=9)
+        ax.set_xticks(
+            range(3), [f"eval: {ORDER_LABELS[o]}" for o in ORDERS], fontsize=9
+        )
+        ax.set_yticks(
+            range(3), [f"train: {ORDER_LABELS[o]}" for o in ORDERS], fontsize=9
+        )
         ax.set_title(
             "DQN shortfall (bps)"
             if mode == "absolute"
-            else "DQN - lookahead(same ordering) (bps, negative = DQN wins)",
+            else "DQN − lookahead under matched ordering (bps; negative favors DQN)",
             fontsize=10,
         )
         fig.colorbar(im, ax=ax, shrink=0.8)
-    fig.suptitle("M3R-B: priority retraining, ForcedTerminal, 300 test seeds")
+    fig.suptitle("Priority retraining under forced completion (development seeds)")
     fig.tight_layout()
     fig.savefig(OUT / "m3r_priority_heatmap.png", dpi=150)
     plt.close(fig)

@@ -1,0 +1,1 @@
+{"outcome":"slippage_proxy","transform":"asinh","t0":"2025-51","horizon":8,"matched_treated":779,"matched_control":303,"pool_weeks":17598,"clusters":1013,"cond_trends":"none","fe":"pool + week","filter_class":"","filter_tier":"","joint_leads_p":0.711466,"lead_slope_p":0.291156,"max_abs_pre":0.337957,"orig_ci_lo":-0.073188,"orig_ci_hi":0.577863,"honestdid_breakdown_Mbar":"0.00"}

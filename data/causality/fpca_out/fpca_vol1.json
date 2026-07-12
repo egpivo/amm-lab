@@ -1,0 +1,1 @@
+{"outcome":"vol1","transform":"asinh","prewin":12,"n_pools":1089,"n_treated":784,"n_control":305,"K":2,"fve":[0.9413,1],"score_imbalance_maha":0.0853,"score_imbalance_permp":0}
