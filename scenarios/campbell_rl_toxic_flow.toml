@@ -19,6 +19,7 @@ flow_regime            = "toxic_burst"
 toxic_burst_prob       = 0.20
 toxic_burst_arb_scale  = 1.0
 toxic_burst_fund_scale = 0.30
+regime_switch_period   = 0
 # E1/E5 stress knobs (defaults keep this scenario identical to the baseline engine)
 e1_lambda    = 0.0
 e1_fee_ref   = 0.0006
