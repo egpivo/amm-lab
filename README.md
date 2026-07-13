@@ -1,63 +1,109 @@
 # amm-lab
 
-A Rust AMM simulation lab for studying execution mechanics, fee design, and LP economics.
+Rust lab for AMM execution mechanics, on-chain causal identification, and
+closed-loop RL simulation. The repo holds **three tracks**:
 
-## Scenarios
-
-All scenario TOML files, parameter reference, and output format live in **[`scenarios/README.md`](scenarios/README.md)**.
-
-| Scenario | Run |
-|---|---|
-| All four controlled-pool scenarios | `scripts/run_all_scenarios.sh` |
-| Single controlled-pool scenario | `cargo run --release -- scenario run scenarios/<name>.toml` |
-
-## Campbell et al. (2025) — Optimal Fee Model
-
-Three binaries implement the [Campbell et al. (2025)](https://doi.org/10.2139/ssrn.4659452) reduced-form model of CEX + DEX with arbitrageurs and fundamental traders. Fees go to a separate LP account (pool reserves maintain constant product exactly). The model predicts an optimal AMM fee slightly below the CEX fee.
-
-| Step | Binary | Output |
+| # | Track | Status |
 |---|---|---|
-| 1 — Single path fee sweep | `cargo run --release --bin campbell_fee_sweep` | `data/processed/campbell_fee_sweep.csv` |
-| 2 — Monte Carlo (500 paths) | `cargo run --release --bin campbell_monte_carlo` | `data/processed/campbell_monte_carlo.csv` |
-| Single path detail | `cargo run --bin campbell_sim scenarios/campbell_sim.toml` | `data/processed/campbell_sim.json`, `data/processed/campbell_sim_steps.csv` |
+| 1 | **AMM scenarios** — controlled-pool mechanics (practice) | stable |
+| 2 | **Paper — causality** — Uniswap protocol-fee switch, channel framework | main empirical paper |
+| 3 | **Paper — RL equilibrium** — execution routing in a dynamic-fee duopoly | awaiting arXiv |
 
-Config: `scenarios/campbell_sim.toml` (shared across all three binaries).
+## Build
 
-### Output columns — Monte Carlo CSV
+```bash
+make build
+make test
+make help
+```
 
-| Column | Description |
+Requires Rust 2024 edition.
+
+---
+
+## 1. AMM scenarios (practice)
+
+Exact `u128` CPMM: reserves, swaps, liquidity mint/burn, arbitrage, LP-vs-hold.
+No market response — isolated mechanics.
+
+**Docs:** [`scenarios/README.md`](scenarios/README.md)
+
+```bash
+make scenarios
+cargo run --release -- scenario run scenarios/<name>.toml
+```
+
+Core code: `src/pool.rs`, `swap.rs`, `liquidity.rs`, `arbitrage.rs`, `scenario.rs`.
+
+---
+
+## 2. Paper — causality
+
+Event-study and channel-audit tooling for the protocol-fee-switch paper.
+Historical identification of LP-supply response (K_L); Campbell et al. (2025)
+reduced-form model appears as a **compressed simulation diagnostic**, not the
+empirical estimand.
+
+| Layer | Location |
 |---|---|
-| `fee_bps` | AMM fee in basis points (1–100) |
-| `amm_fee` | AMM fee as a fraction |
-| `avg_hedged_pnl` | Mean hedged PnL = fee revenue − LVR, across 500 paths |
-| `std_hedged_pnl` | Std dev of hedged PnL |
-| `avg_lp_vs_hold` | Mean LP value (pool + fees) minus passive hold value |
-| `std_lp_vs_hold` | Std dev of LP-vs-hold |
+| Event study / panel | `event_study`, `panel_report`, `panel_compare` |
+| Estimation scripts | `scripts/causality/` |
+| Channel audit | `src/audit/`, `src/causal/` |
+| On-chain data | `src/data/`, `data/causality/` |
+| Model-conditioned sim | `src/campbell/`, `campbell_*` binaries, `scenarios/campbell_*.toml` |
 
-**Key result:** with `cex_fee = 10 bps`, `avg_hedged_pnl` peaks at `fee_bps = 6`, consistent with the paper's prediction that the optimal AMM fee lies slightly below the CEX fee.
+```bash
+# example: event-study coefficient path
+cargo run --release --bin event_study -- --estimate --out data/causality/analysis_r_cal0.25
+
+# Campbell diagnostic (optimal fee under reduced-form CEX+DEX)
+cargo run --release --bin campbell_fee_sweep
+cargo run --release --bin campbell_monte_carlo
+```
+
+Exploratory fee-policy sims (oracle-gap heuristics, tabular RL) live under
+`campbell_rl_*` and support the paper's identification-boundary discussion;
+they are not a separate paper track.
+
+---
+
+## 3. Paper — RL equilibrium
+
+Closed-loop dynamic-fee duopoly: an execution agent's trades move inventory,
+quotes, fees, and arbitrage. PyTorch DQN trains through a Rust JSON bridge.
+**Awaiting arXiv.**
+
+| Layer | Location |
+|---|---|
+| Simulator | `src/sim/` |
+| Rust runners | `rl_equilibrium_*` binaries |
+| DQN pipeline | `scripts/rl_equilibrium/` |
+| Paper artifacts | `data/rl_equilibrium/` (CSVs, checkpoints, figures, manifest) |
+
+```bash
+pip install -r scripts/rl_equilibrium/requirements.txt
+make -C scripts/rl_equilibrium help
+make -C scripts/rl_equilibrium verify    # checks data/rl_equilibrium/
+make -C scripts/rl_equilibrium train-dqn  # regenerates into data/rl_equilibrium/
+```
+
+**Docs:** [`scripts/rl_equilibrium/README.md`](scripts/rl_equilibrium/README.md)
+
+---
 
 ## Module map
 
 ```
 src/
-├── pool.rs          # reserves, fee bps, invariant checks (u128)
-├── swap.rs          # exact-input quote and execution
-├── liquidity.rs     # LP mint/burn accounting
-├── arbitrage.rs     # ternary-search profit-maximizing arb
-├── scenario.rs      # TOML scenario runner
-├── lp_accounting.rs # LP-vs-hold report
-└── campbell/
-    ├── pool.rs      # f64 CPMM with separate fee accounting (k maintained exactly)
-    ├── trader.rs    # arb_delta, fundamental_buy_delta, fundamental_sell_delta
-    ├── gbm.rs       # GBM price path generator
-    └── simulation.rs # per-step loop, StepRecord, SimSummary
+├── pool.rs, swap.rs, scenario.rs …     # (1) AMM scenarios
+├── causal/, data/, audit/              # (2) causality paper
+├── campbell/                           # (2) model-conditioned diagnostic
+├── sim/                                # (3) RL-equilibrium env
+scripts/
+├── causality/                          # (2)
+├── rl_equilibrium/                     # (3)
+data/
+├── causality/                          # (2) on-chain panels & analysis
+├── rl_equilibrium/                     # (3) paper artifacts
+scenarios/                              # (1) + campbell TOMLs for (2)
 ```
-
-## Build
-
-```bash
-cargo build
-cargo test --all
-```
-
-Requires Rust 2024 edition.

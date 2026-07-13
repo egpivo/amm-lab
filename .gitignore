@@ -22,6 +22,17 @@ target
 
 .local/
 
+# Secrets — never commit RPC keys
+.env
+.env.*
+!.env.example
+
 # Added by cargo
 
 /target
+
+# RL-equilibrium local regen scratch (tracked artifacts live in data/rl_equilibrium/)
+experiments/**/out/
+*.log
+**/__pycache__/
+.claude/

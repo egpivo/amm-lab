@@ -1,0 +1,1 @@
+{"outcome":"jit_share_same_block","transform":"asinh","t0":"2025-51","horizon":12,"matched_treated":786,"matched_control":314,"pool_weeks":25959,"clusters":1031,"joint_leads_p":0.198135,"lead_slope_p":0.363046,"max_abs_pre":0.040765,"orig_ci_lo":-0.089241,"orig_ci_hi":0.009221,"honestdid_breakdown_Mbar":"0.00"}

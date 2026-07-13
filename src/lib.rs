@@ -1,12 +1,16 @@
 pub mod actor;
 pub mod amount;
 pub mod arbitrage;
+pub mod audit;
 pub mod campbell;
+pub mod causal;
+pub mod data;
 pub mod error;
 pub mod ledger;
 pub mod liquidity;
 pub mod lp_accounting;
 pub mod pool;
 pub mod scenario;
+pub mod sim;
 pub mod swap;
 pub mod transaction;

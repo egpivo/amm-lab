@@ -1,0 +1,23 @@
+name        = "campbell_rl_normal"
+description = "Campbell RL baseline: normal flow. Oracle-gap heuristic expected to remain strong."
+
+amm_fee     = 0.0006
+cex_fee     = 0.0010
+buy_demand  = 100.0
+sell_demand = 100.0
+reserve_x   = 1000.0
+reserve_y   = 1000.0
+sigma       = 0.04
+mu          = 0.0
+n_steps     = 1440
+seed        = 0
+
+flow_regime            = "normal"
+toxic_burst_prob       = 0.0
+toxic_burst_arb_scale  = 1.0
+toxic_burst_fund_scale = 1.0
+regime_switch_period   = 0
+# E1/E5 stress knobs (defaults keep this scenario identical to the baseline engine)
+e1_lambda    = 0.0
+e1_fee_ref   = 0.0006
+e5_arb_prob  = 1.0

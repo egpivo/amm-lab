@@ -1,0 +1,1 @@
+{"outcome":"depth_1pct","transform":"asinh","t0":"2025-51","horizon":8,"matched_treated":818,"matched_control":303,"pool_weeks":18230,"clusters":1044,"cond_trends":"none","fe":"pool + week","joint_leads_p":0.247516,"lead_slope_p":0.733997,"max_abs_pre":1.384793,"orig_ci_lo":-1.854023,"orig_ci_hi":1.330583,"honestdid_breakdown_Mbar":"0.00"}
