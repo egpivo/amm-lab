@@ -1,0 +1,70 @@
+{
+  "python": "3.10.13 (main, Dec  4 2023, 16:49:17) [Clang 15.0.0 (clang-1500.0.40.1)]",
+  "torch": "2.5.1",
+  "rustc": "rustc 1.92.0 (ded5c06cf 2025-12-08)",
+  "cargo_lock_sha256": "05fc5d676c5598b244bceafd3c4b54c97f2191adf8ee3356cf1110fca3d8feb8",
+  "os": "macOS-14.4-arm64-arm-64bit",
+  "cpu": "arm",
+  "gpu": "none (CPU-only, torch.set_num_threads(1))",
+  "git_commit": "ab79436e95a0223f466f37ea0522dc7df1fea096",
+  "git_dirty": true,
+  "seed_protocol": {
+    "train": "1_000_000 + episode (fresh path per episode)",
+    "validation": "20_000-20_199 (baseline/planner tuning); 20_000-20_049 (DQN checkpoint selection)",
+    "test": "30_000-30_499 (development-visible)",
+    "fresh": "40_000-40_499 (used once per milestone)",
+    "final_paper": "90_000-90_999 (untouched until M3R-F freeze)"
+  },
+  "frozen_choices": {
+    "learner": "DQN MLP 16-64-64-8, checkpoint by 50-seed validation",
+    "headline_checkpoint": "dqn_order_after.pt evaluated agent-last (conservative headline per M3R-B discipline); dqn_dynamic_duopoly.pt agent-first and dqn_order_random.pt random-order disclosed alongside",
+    "completion_rule": "forced_terminal (all policies)",
+    "priority_ordering": "agent-last headline; before/random disclosed",
+    "mode": "dynamic_duopoly",
+    "lookahead": "kappa=16 (validation-tuned)",
+    "stochastic_planner": "K=3, N=16, kappa=16 (validation-tuned)"
+  },
+  "commands": [
+    "# python steps run from scripts/rl_equilibrium/; see repo Makefile",
+    "cargo build --release --bins",
+    "cargo test",
+    "python3 dqn_train.py --episodes 12000 --tag dynamic_duopoly",
+    "python3 dqn_train.py --episodes 12000 --tag completion_aware --train-penalty 0.08",
+    "python3 dqn_train.py --episodes 12000 --tag order_random --agent-order random",
+    "python3 dqn_train.py --episodes 12000 --tag order_after --agent-order after",
+    "python3 dqn_train.py --episodes 12000 --tag constant_duopoly --mode constant_duopoly",
+    "python3 dqn_train.py --episodes 12000 --tag dynamic_monopoly --mode dynamic_monopoly",
+    "./target/release/rl_equilibrium_completion --n-seeds 500",
+    "./target/release/rl_equilibrium_reference --n-seeds 300",
+    "./target/release/rl_equilibrium_planner --n-val 200 --n-seeds 300",
+    "python3 dqn_m3r_eval.py --n-seeds 300 --n-completion 500",
+    "python3 dqn_final_block.py",
+    "python3 verify_paper_artifacts.py",
+    "python3 make_manifest.py"
+  ],
+  "checkpoints": {
+    "dqn_completion_aware.pt": "422d7007c0f7a805c81899ee898520b45fe209368e7ba53100db6020f6d65bd2",
+    "dqn_constant_duopoly.pt": "119672fb98f02e03c335e2544bd3ea2db0d5bf1076ae73876374985dcd31043c",
+    "dqn_dynamic_duopoly.pt": "73788a7169a72e1f504eefb5fc57be898d452d7229b38aca5c4846df15bcb59b",
+    "dqn_dynamic_monopoly.pt": "dd5e98dc371e4ffd8358d1dd987d1f8f9d1294a8a67a07de3ca49ad3df4acb2d",
+    "dqn_order_after.pt": "ec63995f1160e3de3e260429a019be74b9c6314e8b7610be063600bbe2a7ce23",
+    "dqn_order_random.pt": "7d8d243d0d32ecc2677fcbc57657c7b86e93196c4e6585014fc9ed103345b695"
+  },
+  "csv_sha256": {
+    "m3r_completion.csv": "3ffbc5f46d04e47fa3dd5dc5e4729831bf238d5d3e196d1902c7d735e8ad2d45",
+    "m3r_dynamic_fee_ablation.csv": "09111b44aa53b166e573121791cbf916da62f416fee7af511b46e97d74aed1af",
+    "m3r_final_paper_seeds.csv": "d0834dcca6e551dea7f4bff2362a833c18f2c7cec81a589091848c819b371ebb",
+    "m3r_priority.csv": "a1fb9d7546586515eb62ba7a1c11efa0613ac79e25aa035678ac33e0bf31ed5e",
+    "m3r_reference.csv": "83f04b13fd770ad83bba48e63fd11625bac70b1ae8059a739acf0e3f2531ed98",
+    "m3r_reference_final.csv": "3dcd73082ae800035edee5cf4eebfb8b001f2ab61900b1bf0b0cadb76b402c16",
+    "m3r_stochastic_planner.csv": "5149b9261797adea8b1a832257e12cb1c1bcee7fdf756ad7ec15320b88e1e789",
+    "m3r_stochastic_planner_final.csv": "dc8fc4cb2ba1d6643948be55f3fcb1b5387a2159212749006cfc6e8f386b487c",
+    "m3r_symmetry.csv": "044f989f4117c97aba56e6f5df99a2b7c9dd767e76560b2e83ffb72d4191e189",
+    "m3_dqn_curve_completion_aware.csv": "eb5d378845cf7664b8064d6fac9e9331d633a5087ac2f0ad4eaa1c6d53b80425",
+    "m3_dqn_curve_constant_duopoly.csv": "64b018daa15099245c76328f364aa931ecd05143604a26956fc2c95daccded56",
+    "m3_dqn_curve_dynamic_monopoly.csv": "e06c130aa75c48359c4ec17e344e6161c4fca6b297b33d3df90c6f0c364860a1",
+    "m3_dqn_curve_order_after.csv": "185cc5ec04d8c3076cbd5b6530553297973af0e55941fd49f06ff00d95d265ff",
+    "m3_dqn_curve_order_random.csv": "77ede4a6ffd1c9bf10fb2876fc1444a25a00b9e71d0fc3a3ebd3dee46a11c483",
+    "m3_dqn_curve_smoke.csv": "1205a552a0399bfc76431859c8ed7f68f013eda1cbd7f249b1a5eaa83ac23d07"
+  }
+}

@@ -30,5 +30,9 @@ target
 # Added by cargo
 
 /target
-.claude/
+
+# RL-equilibrium local regen scratch (tracked artifacts live in data/rl_equilibrium/)
+experiments/**/out/
 *.log
+**/__pycache__/
+.claude/

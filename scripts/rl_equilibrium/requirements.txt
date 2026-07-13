@@ -1,0 +1,6 @@
+# M3R reproducibility lock (Python side; Rust deps pinned by Cargo.lock)
+# Python 3.10.13
+torch==2.5.1
+numpy==1.26.4
+matplotlib==3.8.*
+# gymnasium is optional (gym_env.py duck-types reset/step without it)

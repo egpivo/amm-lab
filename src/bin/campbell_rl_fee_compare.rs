@@ -2,7 +2,9 @@ use amm_lab::campbell::fee_policy::{
     FixedFeePolicy, InventoryGapFeePolicy, OracleGapFeePolicy, TabularLearnedFeePolicy,
 };
 use amm_lab::campbell::gbm::generate_gbm;
-use amm_lab::campbell::simulation::{FlowRegime, SimConfig, StepRecord, run_simulation};
+use amm_lab::campbell::simulation::{
+    DEFAULT_RL_SCENARIO, FlowRegime, SimConfig, StepRecord, load_sim_config, run_simulation,
+};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::collections::HashMap;
@@ -152,16 +154,11 @@ fn percentile(sorted: &mut [f64], p: f64) -> f64 {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let toml_path = args
-        .get(1)
-        .map(|s| s.as_str())
-        .unwrap_or("scenarios/campbell_rl_normal.toml");
+    let toml_path = args.get(1).map(|s| s.as_str());
     let rl_csv_path = args.get(2).cloned();
 
-    let toml_str = std::fs::read_to_string(toml_path)
-        .unwrap_or_else(|e| panic!("cannot read {toml_path}: {e}"));
-    let base_config: SimConfig =
-        toml::from_str(&toml_str).unwrap_or_else(|e| panic!("invalid TOML: {e}"));
+    let base_config = load_sim_config(toml_path);
+    let config_path = toml_path.unwrap_or(DEFAULT_RL_SCENARIO);
 
     // Resolve RL policy path: explicit arg > scenario-named > canonical
     let rl_path = rl_csv_path.unwrap_or_else(|| {
@@ -177,6 +174,7 @@ fn main() {
     });
 
     println!("Scenario:  {}", base_config.name);
+    println!("Config:    {config_path}");
     println!("Regime:    {:?}", base_config.flow_regime);
     println!("RL policy: {rl_path}");
     println!("Eval seeds: {EVAL_START}..{}", EVAL_START + EVAL_PATHS);
