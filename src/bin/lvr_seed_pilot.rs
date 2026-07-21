@@ -1,4 +1,4 @@
-//! M3 Step A: seed-size pilot (round-25 gate; runs BEFORE the formal
+//! validation-grid Step A: seed-size pilot (round-25 gate; runs BEFORE the formal
 //! training/validation/final blocks are frozen).
 //!
 //! The defensive policy's arbitrage leg is heavy-tailed across seed
@@ -85,7 +85,7 @@ fn config_for(cell: &Cell) -> SimConfig {
     let d_ref = y0 * (1.0 - (1.0f64 + 0.01).powf(-0.5));
     SimConfig {
         name: "seedpilot".into(),
-        description: "M3 step A seed-size pilot".into(),
+        description: "validation-grid step A seed-size pilot".into(),
         amm_fee: cell.fee,
         cex_fee: 0.0010,
         buy_demand: cell.z * d_ref,
@@ -263,7 +263,7 @@ fn main() {
     }
 
     let manifest = serde_json::json!({
-        "step": "M3-A seed-size pilot",
+        "step": "seed-pilot seed-size pilot",
         "target_halfwidth_over_V0": TARGET_HALFWIDTH_OVER_V0,
         "batches": N_BATCHES, "batch_size": BATCH_SIZE,
         "seed_range": [SEED_START, SEED_START + n_total as u64],

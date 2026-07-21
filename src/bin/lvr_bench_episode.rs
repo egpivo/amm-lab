@@ -1,7 +1,7 @@
 //! Quick wall-time benchmark: one 1-second-clock week episode per
 //! stratum (5bp high-activity, 30bp moderate), static policy, hazards
 //! from the frozen 54-cell manifest (medium arb, sigma 0.64, z mid).
-//! Informs M3 compute budgeting only; not a paper artifact.
+//! Informs validation-grid compute budgeting only; not a paper artifact.
 
 use amm_lab::campbell::fee_policy::FixedFeePolicy;
 use amm_lab::campbell::gbm::generate_gbm;

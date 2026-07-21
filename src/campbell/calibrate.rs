@@ -1,5 +1,5 @@
 //! Target-moment calibration of the latent fundamental arrival hazard
-//! (M2.6, round 21). For a given market cell (arb speed, sigma, z-sized
+//! (Poisson-arrival, round 21). For a given market cell (arb speed, sigma, z-sized
 //! demand) the pooled Poisson hazard is tuned on TRAINING seeds so the
 //! STATIC BASELINE's total realized AMM swap count (arb + fundamental
 //! fills, i.e. primitive events with nonzero delta) matches the

@@ -1,4 +1,4 @@
-//! M3 smoke grid for the LVR paper (.local/lvr/plan.md, round 10).
+//! validation-grid smoke grid for the LVR paper (.local/lvr/plan.md, round 10).
 //!
 //! Diagnostic run on TRAINING-DOMAIN seeds only (1000..1199); the
 //! untouched final block is never read here. Order per round-10 review:
@@ -199,7 +199,7 @@ impl MeanStats {
 
 fn main() {
     println!(
-        "# LVR M3 smoke grid (training seeds {:?}, final block untouched)",
+        "# LVR validation-grid smoke grid (training seeds {:?}, final block untouched)",
         SEEDS
     );
 

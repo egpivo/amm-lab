@@ -1,5 +1,5 @@
-//! M3R-A: baseline policies under Standard vs ForcedTerminal completion.
-//! DQN rows are appended to the same CSV by dqn_m3r_eval.py.
+//! baseline-duopoly-A: baseline policies under Standard vs ForcedTerminal completion.
+//! DQN rows are appended to the same CSV by dqn_baseline_eval.py.
 //!
 //! Usage: rl_equilibrium_completion [--n-seeds 500]
 

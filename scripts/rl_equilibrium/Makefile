@@ -41,7 +41,7 @@ m3r-final: build
 	$(REPO_ROOT)/target/release/rl_equilibrium_completion --n-seeds 500
 	$(REPO_ROOT)/target/release/rl_equilibrium_reference --n-seeds 300
 	$(REPO_ROOT)/target/release/rl_equilibrium_planner --n-val 200 --n-seeds 300
-	python3 dqn_m3r_eval.py --n-seeds 300 --n-completion 500
+	python3 dqn_baseline_eval.py --n-seeds 300 --n-completion 500
 	$(REPO_ROOT)/target/release/rl_equilibrium_reference --seed-base 90000 --n-seeds 1000 \
 	  --out $(OUT)/m3r_reference_final.csv
 	$(REPO_ROOT)/target/release/rl_equilibrium_planner --n-val 200 --n-seeds 1000 --seed-base 90000 \
@@ -50,7 +50,7 @@ m3r-final: build
 
 m4: build
 	$(REPO_ROOT)/target/release/rl_equilibrium_sensitivity --n-seeds 500
-	python3 dqn_m4_eval.py
+	python3 dqn_sensitivity_eval.py
 
 ladder: build
 	$(REPO_ROOT)/target/release/rl_equilibrium_ladder --seed-base 90000 --n-seeds 1000 \
@@ -61,8 +61,8 @@ ladder: build
 
 figures:
 	python3 plot_final_ladder.py
-	python3 m3_figures.py
-	python3 m3r_figures.py
+	python3 dqn_figures.py
+	python3 baseline_figures.py
 
 manifest:
 	python3 make_manifest.py

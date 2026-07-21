@@ -1,4 +1,4 @@
-"""Train and evaluate the M3 DQN through the Rust bridge."""
+"""Train and evaluate the validation-grid DQN through the Rust bridge."""
 
 import argparse
 import random

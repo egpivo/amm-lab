@@ -1,4 +1,4 @@
-//! Exact deep-subset z pipeline for the LVR paper (M2.5, round 17).
+//! Exact deep-subset z pipeline for the LVR paper (physical-clock, round 17).
 //!
 //! Rust replacement for the Python prototype `.local/lvr/tools/
 //! deep_subset_z.py` (retained as spec). Streams the extracted

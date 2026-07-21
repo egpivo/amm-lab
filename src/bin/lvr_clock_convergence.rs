@@ -1,4 +1,4 @@
-//! Round-23 clock-convergence diagnostic (M3 gate 1, corrected design).
+//! Round-23 clock-convergence diagnostic (validation-grid gate 1, corrected design).
 //!
 //! COMMON CONTINUOUS-TIME BASE per seed (round-23 requirement): one
 //! 15-second Brownian increment stream (1-minute and 5-minute prices are

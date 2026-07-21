@@ -1,4 +1,4 @@
-//! Raw WETH-USDC swap tape -> oriented fills CSV (standalone M6 data path).
+//! Raw WETH-USDC swap tape -> oriented fills CSV (standalone public-application data path).
 //!
 //! Mirrors the frozen `build_m6_public.py` stage-1 fill construction:
 //!   keep `type == "swap"` rows whose block has a window timestamp, whose

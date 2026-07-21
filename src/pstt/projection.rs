@@ -10,10 +10,10 @@ use nalgebra::{DMatrix, DVector};
 /// They must never be merged into a single rule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RidgePolicy {
-    /// M5-R / M5-S: `Sigma + 1e-12 * I`.
-    M5rs,
-    /// Standalone M6 (`build_m6_public.py`): `Sigma + 1e-9 * I`.
-    StandaloneM6,
+    /// rank-cert / sign-cert: `Sigma + 1e-12 * I`.
+    CertTight,
+    /// Standalone public-application (`build_m6_public.py`): `Sigma + 1e-9 * I`.
+    StandalonePublic,
     /// Panel Stage 4: `Sigma_kk + 1e-12 * max(1, Sigma_kk)` on the diagonal.
     PanelStage4,
 }
@@ -22,12 +22,12 @@ impl RidgePolicy {
     pub fn apply(self, sigma: &mut DMatrix<f64>) {
         let d = sigma.nrows();
         match self {
-            RidgePolicy::M5rs => {
+            RidgePolicy::CertTight => {
                 for k in 0..d {
                     sigma[(k, k)] += 1e-12;
                 }
             }
-            RidgePolicy::StandaloneM6 => {
+            RidgePolicy::StandalonePublic => {
                 for k in 0..d {
                     sigma[(k, k)] += 1e-9;
                 }
@@ -258,10 +258,10 @@ mod tests {
     fn ridge_policies_are_distinct() {
         let base = DMatrix::from_diagonal(&DVector::from_column_slice(&[4.0, 0.0]));
         let mut a = base.clone();
-        RidgePolicy::M5rs.apply(&mut a);
+        RidgePolicy::CertTight.apply(&mut a);
         assert!((a[(0, 0)] - (4.0 + 1e-12)).abs() < 1e-18);
         let mut b = base.clone();
-        RidgePolicy::StandaloneM6.apply(&mut b);
+        RidgePolicy::StandalonePublic.apply(&mut b);
         assert!((b[(0, 0)] - (4.0 + 1e-9)).abs() < 1e-15);
         let mut c = base.clone();
         RidgePolicy::PanelStage4.apply(&mut c);
@@ -282,7 +282,7 @@ mod tests {
         // Draws on a line around theta=0 -> D2 known; check 0.95 interpolation.
         let star = DMatrix::from_row_slice(5, 1, &[-2.0, -1.0, 0.0, 1.0, 2.0]);
         let th = DVector::from_column_slice(&[0.0]);
-        let e = ellipsoid_from_draws(&star, &th, RidgePolicy::M5rs, 0.95).unwrap();
+        let e = ellipsoid_from_draws(&star, &th, RidgePolicy::CertTight, 0.95).unwrap();
         // Sigma = 2.5 (+ridge); D2 sorted = [0, .4, .4, 1.6, 1.6]; linear q95 between
         // index 3.8: 1.6
         assert!((e.c_alpha - 1.6).abs() < 1e-9);

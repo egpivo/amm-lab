@@ -1,6 +1,6 @@
-//! M3R reference numbers: tuned lookahead and TWAP under every agent
+//! baseline-duopoly reference numbers: tuned lookahead and TWAP under every agent
 //! ordering and market mode, ForcedTerminal completion, test + fresh seeds.
-//! DQN matrices from dqn_m3r_eval.py are compared against these rows.
+//! DQN matrices from dqn_baseline_eval.py are compared against these rows.
 
 use amm_lab::sim::env::{AgentOrder, CompletionRule, EnvConfig, ExecEnv, MarketMode};
 use amm_lab::sim::execution_agent::{ExecutionPolicy, LookaheadPolicy, TwapPolicy};
@@ -23,7 +23,7 @@ struct Args {
     /// (dynamic duopoly, validation seeds 20,000-20,199) and exit.
     #[arg(long, default_value_t = false)]
     tune_kappa: bool,
-    /// Lookahead carry parameter (default matches the frozen M3R runs).
+    /// Lookahead carry parameter (default matches the frozen baseline-duopoly runs).
     #[arg(long, default_value_t = 16.0)]
     kappa: f64,
 }

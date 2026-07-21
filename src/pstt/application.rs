@@ -1,4 +1,4 @@
-//! Standalone M6-style application composition (weekly records -> signed
+//! Standalone public-application-style application composition (weekly records -> signed
 //! regions -> ranking status), mirroring the frozen `build_m6_public.py`
 //! stage-2 formulas. This is additive parity tooling: it never regenerates
 //! or replaces the frozen historical result, and it does not claim bitwise
@@ -120,7 +120,7 @@ pub fn pool_signed_regions(
         om.iter().sum::<f64>(),
     ]);
     let star: DMatrix<f64> = schedule.stacked_sums(&[&l, &s, &om])?;
-    let region = ellipsoid_from_draws(&star, &theta, RidgePolicy::StandaloneM6, nominal)
+    let region = ellipsoid_from_draws(&star, &theta, RidgePolicy::StandalonePublic, nominal)
         .map_err(|e| PsttError::invariant(format!("ellipsoid failure: {e:?}")))?;
     let mut outer_regions = BTreeMap::new();
     for &rb in r_bar_grid {
@@ -214,7 +214,7 @@ pub fn ranking_signed(
         o3.iter().sum(),
     ]);
     let star = schedule.stacked_sums(&[&l5, &s5, &o5, &l3, &s3, &o3])?;
-    let region = ellipsoid_from_draws(&star, &theta, RidgePolicy::StandaloneM6, nominal)
+    let region = ellipsoid_from_draws(&star, &theta, RidgePolicy::StandalonePublic, nominal)
         .map_err(|e| PsttError::invariant(format!("ellipsoid failure: {e:?}")))?;
 
     let env5 = envelope_from_weekly(&l5, &s5, &o5)?;

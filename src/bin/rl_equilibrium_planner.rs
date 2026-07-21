@@ -1,4 +1,4 @@
-//! M3R-D: stochastic rollout planner baseline.
+//! baseline-duopoly-D: stochastic rollout planner baseline.
 //!
 //! For each decision: for each root action, average the K-step cost over N
 //! sampled model rollouts (GBM oracle steps, lognormal noise volumes,

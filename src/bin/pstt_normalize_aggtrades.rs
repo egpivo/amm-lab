@@ -1,4 +1,4 @@
-//! Binance aggTrades archive normalization (standalone M6 data path).
+//! Binance aggTrades archive normalization (standalone public-application data path).
 //!
 //! Reads daily archives named `{SYMBOL}-aggTrades-YYYY-MM-DD.{zip|csv|csv.gz}`
 //! from an input directory and writes normalized headerless CSVs

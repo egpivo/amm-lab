@@ -1,4 +1,4 @@
-# PSTT standalone WETH-USDC replication (M6 application)
+# PSTT standalone WETH-USDC replication (public-application application)
 
 ## Authority and roles
 
@@ -10,7 +10,7 @@
 - **Rust (`src/pstt/`, `src/bin/pstt_*`) is additive parity/reconstruction
   tooling only.** It re-implements the frozen deterministic kernels with
   regression tests against a stored NumPy oracle fixture. It does not change
-  the frozen M6 verdict (UNDETERMINED, reference-robust, not
+  the frozen public-application verdict (UNDETERMINED, reference-robust, not
   positivity-limited) and computes no new empirical results.
 
 ## Bootstrap provenance limit
@@ -125,7 +125,7 @@ All tools refuse a nonempty output directory unless
 `cargo test --test pstt_projection_gate --test pstt_standalone_gate \
   --test pstt_parity_gate --test pstt_prepare_gate --test pstt_staleness_gate`
 
-covers: M5-S S1/S2/S3 authority cases and 200 randomized five-corner cases
+covers: sign-cert S1/S2/S3 authority cases and 200 randomized five-corner cases
 against a stored NumPy oracle fixture
 (`tests/fixtures/pstt/m5s_projection_fixture_v1.json`), denominator-screen
 boundary cases (inclusive zero-touch abstention, strict `> 0` screen),

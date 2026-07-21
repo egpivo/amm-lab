@@ -1,6 +1,6 @@
 //! Certification classification for signed identified sets, matching the
 //! frozen standalone status rule in `build_m6_public.py` stage 2 and the
-//! M5-S certification predicates. Strict inequalities are the contract:
+//! sign-cert certification predicates. Strict inequalities are the contract:
 //! an endpoint exactly at zero never certifies a sign.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,7 +22,7 @@ pub fn strict_sign(lo: f64, hi: f64) -> StrictSign {
     }
 }
 
-/// M5-S certification predicates over the signed region composites.
+/// sign-cert certification predicates over the signed region composites.
 /// `cert_neg`: sup of the set confidence region `< 0`;
 /// `cert_pos`: inf of the set confidence region `> 0`.
 pub fn cert_neg(m_hi: (f64, f64)) -> bool {

@@ -30,7 +30,7 @@ impl Envelope {
     }
 }
 
-/// Standalone M6 envelope rule (frozen stage 2):
+/// Standalone public-application envelope rule (frozen stage 2):
 /// `wm = L/max(Om,1)` per week, `ws = S/max(Om,1)`;
 /// `env = (min wm, max wm, max(1e-9, min ws), max ws)`.
 pub fn envelope_from_weekly(l: &[f64], s: &[f64], om: &[f64]) -> Result<Envelope> {
@@ -178,7 +178,7 @@ pub fn d1r_signed_ranges(
     }
 }
 
-/// Contrast interval composition (frozen standalone ranking and M5-R rank):
+/// Contrast interval composition (frozen standalone ranking and rank-cert rank):
 /// `I_Delta = [lower.Mlo.lo - higher.Mhi.hi, lower.Mhi.hi - higher.Mlo.lo]`.
 pub fn contrast_interval(
     lower_m_lo: (f64, f64),

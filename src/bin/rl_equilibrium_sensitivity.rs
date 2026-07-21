@@ -1,7 +1,7 @@
-//! M4: baseline rows (lookahead, twap) for the LP-adaptation and JIT
-//! sensitivity grids. DQN rows are appended by dqn_m4_eval.py.
+//! sensitivity: baseline rows (lookahead, twap) for the LP-adaptation and JIT
+//! sensitivity grids. DQN rows are appended by dqn_sensitivity_eval.py.
 //!
-//! Reserved seed blocks (never used before M4): LP 95_000-95_499,
+//! Reserved seed blocks (never used before sensitivity): LP 95_000-95_499,
 //! JIT 96_000-96_499. ForcedTerminal completion, agent-first ordering.
 
 use amm_lab::sim::env::{CompletionRule, EnvConfig, ExecEnv, JitRegime, LpRegime, MarketMode};

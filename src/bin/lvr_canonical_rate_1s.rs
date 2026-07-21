@@ -197,7 +197,7 @@ fn main() {
     .unwrap();
     writeln!(
         report,
-        "- Driftless M3 martingale convention (`mu=0` GBM).\n"
+        "- Driftless validation-grid martingale convention (`mu=0` GBM).\n"
     )
     .unwrap();
     writeln!(report, "## Results\n").unwrap();

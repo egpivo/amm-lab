@@ -72,20 +72,20 @@ pub struct SimConfig {
     // E5 arbitrage-latency stress (additive; default 1.0 = arb every step, no latency)
     #[serde(default = "default_scale_one")]
     pub e5_arb_prob: f64,
-    // M2 (lvr paper): policy information-set lag in steps. 0 = zero-lag
+    // policy-selected (lvr paper): policy information-set lag in steps. 0 = zero-lag
     // baseline (fee decision sees the contemporaneous observation and
     // applies to the same step's fills); 1 = one-step lag f_t = pi(Z_{t-1}),
     // the PRIMARY specification per round 11.
     #[serde(default)]
     pub policy_lag: usize,
-    // M2.5 (lvr paper): physical step length in hours. Converts arrival
+    // physical-clock (lvr paper): physical step length in hours. Converts arrival
     // rates into per-step probabilities and defines the GBM dt via
     // `SimConfig::dt_years()` — experiment binaries MUST generate paths
     // from that helper (round 13: no mixed clocks) and write dt_hours /
     // dt_years into their output manifests.
     #[serde(default = "default_scale_one")]
     pub dt_hours: f64,
-    // M2.5 (round 13, POOLED semantics): latent fundamental-demand arrival
+    // physical-clock (round 13, POOLED semantics): latent fundamental-demand arrival
     // rate in events per hour, POOLED across sides, split by
     // `buy_arrival_share` r into lambda_buy = r*lam, lambda_sell =
     // (1-r)*lam; each side independently arrives with
@@ -100,25 +100,25 @@ pub struct SimConfig {
     // other flow).
     #[serde(default)]
     pub pooled_fund_arrival_rate_per_hour: Option<f64>,
-    // M2.5 (round 13): share of pooled arrivals on the buy side.
+    // physical-clock (round 13): share of pooled arrivals on the buy side.
     // Primary 0.5; observed side imbalance is a robustness axis.
     #[serde(default = "default_half")]
     pub buy_arrival_share: f64,
-    // M2.5 (round 13): physical-time arbitrage activation. Some(lam):
+    // physical-clock (round 13): physical-time arbitrage activation. Some(lam):
     // p_arb = 1 - exp(-lam * dt_hours), overriding e5_arb_prob, so the
     // arb-speed axis survives clock changes. None = legacy per-step
     // Bernoulli e5_arb_prob (whose physical meaning changes with the
     // clock and must then be reported as a mean waiting time).
     #[serde(default)]
     pub arb_arrival_rate_per_hour: Option<f64>,
-    // M2.5 (round 13): physical lookback for the policy observation
+    // physical-clock (round 13): physical lookback for the policy observation
     // window (rolling vol, arb/fund fractions, volume). window_steps =
     // round(lookback_hours / dt_hours), so the information set is
     // clock-invariant. Default 20 h reproduces the legacy 20-step window
     // on the hourly clock.
     #[serde(default = "default_lookback_hours")]
     pub lookback_hours: f64,
-    // M2.6 (round 21): arrival model. Bernoulli = legacy at-most-one
+    // Poisson-arrival (round 21): arrival model. Bernoulli = legacy at-most-one
     // demand event per side per step. Poisson = side-specific counts
     // K ~ Poisson(lambda_side * dt) with policy-invariant intra-step
     // times; each arrival is a separate PRIMITIVE demand event executed
@@ -215,7 +215,7 @@ pub struct StepRecord {
     pub fund_demand_lost: f64,
     // E5 instrumentation (additive)
     pub arb_active: bool,
-    // M2 (lvr paper) per-fill gap accounting: ell = delta * (P - pbar)
+    // policy-selected (lvr paper) per-fill gap accounting: ell = delta * (P - pbar)
     // with pbar the exact CPMM average execution price of that fill.
     // A_T = sum of positive parts, B_T = sum of negative parts
     // (Jordan decomposition on primitive fill events).
@@ -225,7 +225,7 @@ pub struct StepRecord {
     pub pbar_arb: f64,
     pub pbar_buy: f64,
     pub pbar_sell: f64,
-    // M2 destination ledger per fundamental demand event (risky units):
+    // policy-selected destination ledger per fundamental demand event (risky units):
     // potential = AMM fill + CEX-routed + unserved (router-substitution).
     pub pot_buy: f64,
     pub pot_sell: f64,
@@ -233,7 +233,7 @@ pub struct StepRecord {
     pub cex_sell: f64,
     pub unserved_buy: f64,
     pub unserved_sell: f64,
-    // M2 quote accuracy: |log P - log p_amm| at end of step (post-fills).
+    // policy-selected quote accuracy: |log P - log p_amm| at end of step (post-fills).
     pub log_gap_abs: f64,
 }
 
@@ -436,7 +436,7 @@ fn run_episode_inner(
 
     let mut previous_fee = config.amm_fee;
     let mut prev_position = hedging - pool.pool_value(cex_prices[0]);
-    // M2/M2.7: lagged information set. Under policy_lag = L the fee
+    // policy-selected/lagged-policy: lagged information set. Under policy_lag = L the fee
     // decision at step t sees the observation built at step t-L; the
     // first L decisions see the genuine t_0 observation (signal frozen at
     // t_0 during warm-up, disclosed). L is in STEPS; under a finer market
@@ -636,7 +636,7 @@ fn run_episode_inner(
     }
 }
 
-/// One step's fill outcomes: aggregate fees/deltas plus M2 per-fill gap
+/// One step's fill outcomes: aggregate fees/deltas plus policy-selected per-fill gap
 /// accounting and the potential-demand destination ledger.
 struct StepFills {
     step_fee: f64,
@@ -854,7 +854,7 @@ fn execute_trades(
     let fund_retention = (1.0
         - config.e1_lambda * ((fee - config.e1_fee_ref).max(0.0) / config.e1_fee_ref))
         .clamp(0.0, 1.0);
-    // M2.5 arrival thinning: no arrival => zero potential demand on that
+    // physical-clock arrival thinning: no arrival => zero potential demand on that
     // side (the destination ledger records a pot_* = 0 row).
     let eff_buy = if arrivals.0 {
         config.buy_demand * fund_scale
@@ -1163,7 +1163,7 @@ fn effective_fund_scale(config: &SimConfig, step: usize, rng: &mut StdRng) -> f6
     }
 }
 
-// ── M0 metric identity audit tests (.local/lvr) ──────────────────────────────
+// ── metric-identity metric identity audit tests (.local/lvr) ──────────────────────────────
 //
 // These tests pin the definition of the realized tracking error
 // L_T = hedging_portfolio_T - pool_value_T as computed by this engine:
@@ -1331,7 +1331,7 @@ mod tests {
         );
     }
 
-    /// M2: the engine's per-fill gap records (ell_arb/ell_buy/ell_sell)
+    /// policy-selected: the engine's per-fill gap records (ell_arb/ell_buy/ell_sell)
     /// must sum exactly to the tracking error, independently of the replay
     /// construction used in `tracking_error_telescopes_over_fills`.
     #[test]
@@ -1349,7 +1349,7 @@ mod tests {
         );
     }
 
-    /// M2 destination ledger conservation: potential demand = AMM fill +
+    /// policy-selected destination ledger conservation: potential demand = AMM fill +
     /// CEX-routed + unserved, per side, every step (risky units).
     #[test]
     fn destination_ledger_conserves_potential_demand() {
@@ -1374,7 +1374,7 @@ mod tests {
         assert!(unserved > 0.0, "e1_lambda must produce unserved volume");
     }
 
-    /// M2 one-step-lag mode: with a constant-fee policy the lag cannot
+    /// policy-selected one-step-lag mode: with a constant-fee policy the lag cannot
     /// matter (the decision ignores the observation), so records must be
     /// identical; this pins that lag only reroutes the information set.
     #[test]
@@ -1390,7 +1390,7 @@ mod tests {
         }
     }
 
-    /// M2 one-step-lag mode: a state-dependent policy must actually see
+    /// policy-selected one-step-lag mode: a state-dependent policy must actually see
     /// stale information under lag=1 — fee decisions differ from zero-lag.
     #[test]
     fn lag_changes_state_dependent_policy_decisions() {
@@ -1477,7 +1477,7 @@ mod tests {
         }
     }
 
-    /// M2.5 arrival thinning: the arrival sequence is policy-invariant
+    /// physical-clock arrival thinning: the arrival sequence is policy-invariant
     /// given the seed (pot_* patterns identical across different fee
     /// policies on the same path), the ledger conserves on zero-potential
     /// rows, and the realized arrival frequency is near p = 1 - exp(-l*dt).
@@ -1541,7 +1541,7 @@ mod tests {
         assert_eq!(arb_volume, 0.0, "zero arb rate must disable arbitrage");
     }
 
-    /// M2.5 arrival rate semantics: Some(0.0) means demand NEVER arrives
+    /// physical-clock arrival rate semantics: Some(0.0) means demand NEVER arrives
     /// (distinct from None = legacy always-on).
     #[test]
     fn arrival_rate_zero_means_no_demand() {
@@ -1560,7 +1560,7 @@ mod tests {
         assert_eq!(served, 0.0);
     }
 
-    /// M2.6 gate 1: the Poisson primitive-event schedule is
+    /// Poisson-arrival gate 1: the Poisson primitive-event schedule is
     /// policy-invariant — two different fee policies on the same seed see
     /// identical (step, time_frac, kind, pot) fundamental-event sequences.
     #[test]
@@ -1639,7 +1639,7 @@ mod tests {
         );
     }
 
-    /// M2.6 gate 2+3: per-primitive-event destination conservation and the
+    /// Poisson-arrival gate 2+3: per-primitive-event destination conservation and the
     /// A/B/L identity on the EVENT ledger (sum of per-event ell equals the
     /// step-based tracking error), with multi-event steps present.
     #[test]
@@ -1682,7 +1682,7 @@ mod tests {
         );
     }
 
-    /// M2.6 gate 4a: Poisson with zero hazard equals Bernoulli with zero
+    /// Poisson-arrival gate 4a: Poisson with zero hazard equals Bernoulli with zero
     /// hazard exactly (arb-only records identical; arrival RNG consumption
     /// does not touch the arb path).
     #[test]
@@ -1699,7 +1699,7 @@ mod tests {
         }
     }
 
-    /// M2.6 gate 4b: low-rate convergence — realized fund-event frequency
+    /// Poisson-arrival gate 4b: low-rate convergence — realized fund-event frequency
     /// approaches lambda*dt and identities still hold.
     #[test]
     fn poisson_low_rate_convergence() {
@@ -1729,7 +1729,7 @@ mod tests {
         assert!((ell_sum - te).abs() < 1e-6 * te.abs().max(1.0));
     }
 
-    /// M2.6/round-26 gate: two-moment calibration hits BOTH the total
+    /// Poisson-arrival/round-26 gate: two-moment calibration hits BOTH the total
     /// activity target and the arb-fill target (or reports the arb
     /// ceiling as unreachable), solving for latent lambda_arb*/fund*.
     #[test]
@@ -1783,7 +1783,7 @@ mod tests {
         assert!((r.total_achieved - total_target).abs() <= 0.12 * total_target);
     }
 
-    /// M2.6 gate 5: target-moment calibration reaches a tier-style activity
+    /// Poisson-arrival gate 5: target-moment calibration reaches a tier-style activity
     /// target within tolerance on a small cell.
     #[test]
     fn poisson_hazard_calibration_hits_target() {

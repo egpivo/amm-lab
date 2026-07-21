@@ -119,7 +119,7 @@ pub(crate) fn pool_cost(obs: &Observation, pool_a: bool, qty: f64) -> Option<f64
 }
 
 /// Cost of an action (premium over oracle, gas included) plus the fraction
-/// of remaining it executes. Buy-side only; all M1 orders are buys.
+/// of remaining it executes. Buy-side only; all closed-loop orders are buys.
 fn action_cost(obs: &Observation, action: usize) -> Option<(f64, f64)> {
     let (_, fracs) = crate::sim::env::action_spec(action);
     let mut cost = 0.0;

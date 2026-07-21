@@ -1,6 +1,6 @@
 //! Tabular Q-learning over a coarse discretization of the observation.
 //!
-//! Small by design: the M1 question is whether the closed-loop environment
+//! Small by design: the closed-loop question is whether the closed-loop environment
 //! contains exploitable sequential structure beyond tuned heuristics, not
 //! whether a big learner can memorize the simulator. 225 states x 8 actions.
 //!
@@ -16,7 +16,7 @@ use rand::rngs::StdRng;
 use serde::{Deserialize, Serialize};
 
 pub const N_STATES: usize = 6 * 5 * 3 * 5;
-/// Fine spec (M3A): steps-left(8) x remaining(6) x route-gap(5) x premium(6).
+/// Fine spec (fine-tabular): steps-left(8) x remaining(6) x route-gap(5) x premium(6).
 pub const N_STATES_FINE: usize = 8 * 6 * 5 * 6;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -88,7 +88,7 @@ pub fn state_index(obs: &Observation, horizon: usize) -> usize {
     ((tb * 5 + rb) * 3 + gb) * 5 + pb
 }
 
-/// Fine discretization for M3A: same feature families, higher resolution
+/// Fine discretization for fine-tabular: same feature families, higher resolution
 /// around the terminal region, the route gap, and the premium band.
 pub fn state_index_fine(obs: &Observation, horizon: usize) -> usize {
     let steps_left = ((obs.remaining_time_frac * horizon as f64).round() as usize).max(1);

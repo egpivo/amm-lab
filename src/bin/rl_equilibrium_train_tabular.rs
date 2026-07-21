@@ -1,4 +1,4 @@
-//! M1: train the tabular Q-learner per market mode, tune the lookahead
+//! closed-loop: train the tabular Q-learner per market mode, tune the lookahead
 //! baseline's kappa on validation seeds, then evaluate everything on
 //! held-out test seeds.
 //!
@@ -28,7 +28,7 @@ struct Args {
     n_test: u64,
     #[arg(long, default_value = "experiments/rl_execution/out")]
     out_dir: String,
-    /// State discretization: "coarse" (M1) or "fine" (M3A).
+    /// State discretization: "coarse" (closed-loop) or "fine" (fine-tabular).
     #[arg(long, default_value = "coarse")]
     spec: String,
     /// Prefix for results/actions CSVs (m1 or m3_fine etc.).

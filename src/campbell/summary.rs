@@ -1,4 +1,4 @@
-//! M2 (lvr paper) summary aggregation over per-step records.
+//! policy-selected (lvr paper) summary aggregation over per-step records.
 //!
 //! Everything here is a pure post-processing function of `Vec<StepRecord>`;
 //! the engine itself only records primitive per-fill quantities. Metric
@@ -251,7 +251,7 @@ pub fn markout(records: &[StepRecord], horizon: usize) -> MarkoutSummary {
     }
 }
 
-// ── M2.6/M3 primitive-event metrics (round 22) ───────────────────────────
+// ── Poisson-arrival/validation-grid primitive-event metrics (round 22) ───────────────────────────
 //
 // With multiple primitive events per clock bin, aggregation granularities
 // are renamed (the old step-based names were ambiguous):
