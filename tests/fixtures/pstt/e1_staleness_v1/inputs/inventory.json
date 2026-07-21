@@ -1,0 +1,16 @@
+{
+  "contrasts": [
+    {
+      "contrast_id": "USDC/WETH:500-3000",
+      "pair": "USDC/WETH",
+      "base": "WETH",
+      "quote": "USDC",
+      "cex_symbol": "ETHUSDC",
+      "invert": false,
+      "lower_fee": 500,
+      "higher_fee": 3000,
+      "pool_lower": "0x0000000000000000000000000000000000000001",
+      "pool_higher": "0x0000000000000000000000000000000000000002"
+    }
+  ]
+}

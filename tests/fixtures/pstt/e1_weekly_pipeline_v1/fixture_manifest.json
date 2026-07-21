@@ -1,0 +1,12 @@
+{
+  "fixture_id": "e1_weekly_pipeline_v1",
+  "kind": "synthetic",
+  "purpose": "Strict-pre join, equal-time exclusion, 1s VWAP, dual-sign marks, L=A-B identity, ISO week aggregation without full 104-slot panel calendar.",
+  "cases": [
+    "fill at T=1704110400 joins trade at 1704110390 price 2480 (equal-time 2500 excluded)",
+    "second fill same T shares last-trade reference; direction -1",
+    "fill at 1704110500 uses VWAP over [1704110499? wait 1704110500-1=1704110499] trades in [T-1,T)",
+    "13-digit millisecond timestamps"
+  ],
+  "source": "hand-authored synthetic rows; not derived from frozen paper artifacts"
+}

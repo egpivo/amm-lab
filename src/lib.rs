@@ -10,6 +10,7 @@ pub mod ledger;
 pub mod liquidity;
 pub mod lp_accounting;
 pub mod pool;
+pub mod pstt;
 pub mod scenario;
 pub mod sim;
 pub mod swap;

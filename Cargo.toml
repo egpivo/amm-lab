@@ -16,7 +16,11 @@ rand_distr = "0.4"
 nalgebra = "0.33"
 sha2 = "0.10"
 flate2 = "1"
+ruint = "1"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+ureq = { version = "2", features = ["json"] }
 
 [dev-dependencies]
 proptest = "1"
 flate2 = "1"
+zip = { version = "2", default-features = false, features = ["deflate"] }

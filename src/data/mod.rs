@@ -16,6 +16,7 @@ pub mod completeness;
 pub mod io;
 pub mod panel;
 pub mod reconstruct;
+pub mod v3math;
 
 pub use book::Book;
 pub use completeness::{CompletenessReport, frozen_week_grid, report as completeness_report};
