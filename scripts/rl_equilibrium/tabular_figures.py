@@ -1,7 +1,7 @@
-"""M1/M2 figures from m1_results.csv, m1_actions.csv, m1_trajectory_q.csv,
+"""tabular-learner figures from m1_results.csv, m1_actions.csv, m1_trajectory_q.csv,
 and m2_diagnostics.csv. Writes PNGs to out/.
 
-Usage: python m1_m2_figures.py
+Usage: python tabular_figures.py
 """
 
 from collections import defaultdict
@@ -63,7 +63,7 @@ def fig_comparison(rows: list[dict]) -> None:
     ax.set_xticks(range(len(MODES)), MODES)
     ax.set_ylabel("implementation shortfall (bps)")
     ax.set_title(
-        "M1: shortfall by policy and market mode, 500 held-out seeds (95% bootstrap CI)"
+        "closed-loop: shortfall by policy and market mode, 500 held-out seeds (95% bootstrap CI)"
     )
     ax.set_ylim(0, ax.get_ylim()[1] * 1.2)
     ax.legend(frameon=False, ncols=4, loc="upper center", fontsize=9)
@@ -94,7 +94,7 @@ def fig_paired(rows: list[dict]) -> None:
         style(ax)
     axes[0].set_ylabel("seeds")
     fig.suptitle(
-        "M1 paired seed-level comparison, DynamicDuopoly (negative favors learner)",
+        "closed-loop paired seed-level comparison, DynamicDuopoly (negative favors learner)",
         fontsize=11,
     )
     fig.tight_layout()
@@ -210,7 +210,7 @@ def fig_actions(rows: list[dict]) -> None:
         bbox_to_anchor=(0.5, 0.02),
     )
     fig.suptitle(
-        "M1: action distribution by remaining time (DynamicDuopoly test seeds)"
+        "closed-loop: action distribution by remaining time (DynamicDuopoly test seeds)"
     )
     fig.tight_layout(rect=(0, 0.05, 1, 1))
     fig.savefig(OUT / "m1_actions_time.png", dpi=150)
@@ -233,7 +233,7 @@ def fig_actions(rows: list[dict]) -> None:
         ax.plot(labels, shares, marker="o", color=COLORS[pol], label=pol)
     ax.set_xlabel("estimated slippage for a 25% clip (bps)")
     ax.set_ylabel("wait share")
-    ax.set_title("M1: waiting vs current execution premium")
+    ax.set_title("closed-loop: waiting vs current execution premium")
     ax.legend(frameon=False)
     style(ax)
     fig.tight_layout()
@@ -298,7 +298,7 @@ def fig_m2(rows: list[dict]) -> None:
         style(ax)
     axes[0][0].legend(frameon=False, fontsize=9)
     fig.suptitle(
-        "M2 artifact diagnostics: frozen DynamicDuopoly learner under perturbation "
+        "policy-selected artifact diagnostics: frozen DynamicDuopoly learner under perturbation "
         "(300 test seeds, 95% bootstrap CI)",
         fontsize=11,
     )

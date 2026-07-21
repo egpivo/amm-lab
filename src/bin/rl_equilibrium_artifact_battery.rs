@@ -1,4 +1,4 @@
-//! M2 artifact diagnostics for the trained DynamicDuopoly learner.
+//! policy-selected artifact diagnostics for the trained DynamicDuopoly learner.
 //!
 //! The Q-table trained under the base DynamicDuopoly config is FROZEN and
 //! evaluated under perturbed environments (no retraining), against the
@@ -9,7 +9,7 @@
 //!   noise      : shifted flow distribution (intensity x2, sigma x2)
 //!   coeff      : a_own / a_rival / a_oracle scaled x0.5 / x2
 //!   mode       : transfer to ConstantDuopoly / DynamicMonopoly
-//!   fresh_test : base config on seeds never touched during M1 iteration
+//!   fresh_test : base config on seeds never touched during closed-loop iteration
 
 use amm_lab::sim::env::{AgentOrder, EnvConfig, EpisodeSummary, ExecEnv, MarketMode};
 use amm_lab::sim::execution_agent::{ExecutionPolicy, LookaheadPolicy, TwapPolicy};
@@ -25,7 +25,7 @@ struct Args {
     n_fresh: u64,
     #[arg(long, default_value = "experiments/rl_execution/out")]
     out_dir: String,
-    /// kappa selected on validation seeds in M1 (dynamic duopoly).
+    /// kappa selected on validation seeds in closed-loop (dynamic duopoly).
     #[arg(long, default_value_t = 16.0)]
     kappa: f64,
 }
@@ -212,7 +212,7 @@ fn main() {
             &mut f,
         );
     }
-    println!("--- fresh seeds (never used in M1 iteration) ---");
+    println!("--- fresh seeds (never used in closed-loop iteration) ---");
     let ident: Mutator = Box::new(|_| {});
     run_cell(
         "fresh_test",

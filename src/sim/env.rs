@@ -50,7 +50,7 @@ pub enum Side {
 
 /// Intra-step ordering of the agent relative to noise flow + arbitrage.
 /// `Before` is frozen v0 semantics (agent has priority). `After` and
-/// `Random` exist for the M2 priority-artifact diagnostic.
+/// `Random` exist for the policy-selected priority-artifact diagnostic.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum AgentOrder {
     Before,
@@ -58,14 +58,14 @@ pub enum AgentOrder {
     Random,
 }
 
-/// M4A: LP depth-adaptation regimes. Motivated by the causal paper's
+/// LP-adaptation: LP depth-adaptation regimes. Motivated by the causal paper's
 /// finding of no large short-run average LP response (Frozen default is
 /// the calibrated case); Weak/Aggressive are SENSITIVITY layers, not
 /// causal evidence. LPs scale pool depth (price-preserving) in response
 /// to toxic flow, proxied by arbitrage hits in a trailing window.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum LpRegime {
-    /// M3R default: depth fixed over the horizon (as in arXiv:2603.09669).
+    /// baseline-duopoly default: depth fixed over the horizon (as in arXiv:2603.09669).
     Frozen,
     /// Small, delayed withdrawal: >=3 arb hits in the last 10 steps ->
     /// depth x0.997 per step; else recovery x1.001; floor 0.90.
@@ -75,7 +75,7 @@ pub enum LpRegime {
     Aggressive,
 }
 
-/// M4B: minimal JIT/searcher layer. When an agent trade on a pool exceeds
+/// JIT-searcher: minimal JIT/searcher layer. When an agent trade on a pool exceeds
 /// `threshold_y` (and a seeded coin at `prob` lands), a searcher
 /// sandwiches it: buys `frac * q` before the fill and sells it back
 /// after. Deterministic by seed; not a full MEV market model.
@@ -98,7 +98,7 @@ impl JitRegime {
     }
 }
 
-/// Completion handling at the final step (M3R-A).
+/// Completion handling at the final step (baseline-duopoly-A).
 /// `ForcedTerminal`: any inventory left after the agent's final action is
 /// executed immediately, split equally across live pools, at prevailing
 /// all-in cost (gas charged per pool). Applied identically to every
@@ -154,9 +154,9 @@ pub struct EnvConfig {
     pub agent_order: AgentOrder,
     /// Terminal completion handling (v0 default: Standard).
     pub completion_rule: CompletionRule,
-    /// M4A LP depth adaptation (default Frozen = M3R semantics).
+    /// LP-adaptation LP depth adaptation (default Frozen = baseline-duopoly semantics).
     pub lp_regime: LpRegime,
-    /// M4B JIT/searcher layer (default None = M3R semantics).
+    /// JIT-searcher JIT/searcher layer (default None = baseline-duopoly semantics).
     pub jit_regime: JitRegime,
     pub seed: u64,
 }
@@ -310,7 +310,7 @@ pub struct EpisodeSummary {
     pub terminal_penalty_bps: f64,
     /// Premium (incl. gas) of the ForcedTerminal completion leg, bps.
     pub forced_terminal_cost_bps: f64,
-    // --- M4 sensitivity-layer telemetry (1.0 / 1.0 / 0 under M3R defaults) ---
+    // --- sensitivity sensitivity-layer telemetry (1.0 / 1.0 / 0 under baseline-duopoly defaults) ---
     pub avg_depth_factor: f64,
     pub min_depth_factor: f64,
     pub jit_event_count: usize,
@@ -347,12 +347,12 @@ pub struct ExecEnv {
     slippage_num: f64,
     drift_num: f64,
     forced_cost_x: f64,
-    // M4A LP adaptation state
+    // LP-adaptation LP adaptation state
     depth_factor: [f64; 2],
     depth_factor_sum: f64,
     depth_factor_min: f64,
     arb_hits: [std::collections::VecDeque<bool>; 2],
-    // M4B JIT state
+    // JIT-searcher JIT state
     rng_jit: StdRng,
     jit_events: usize,
     wait_steps: usize,
@@ -566,7 +566,7 @@ impl ExecEnv {
             if q <= 1e-12 {
                 continue;
             }
-            // M4B: searcher sandwich around large agent trades
+            // JIT-searcher: searcher sandwich around large agent trades
             let mut jit_q = 0.0;
             if let Some((threshold, frac, prob)) = self.cfg.jit_regime.params()
                 && q >= threshold
@@ -690,8 +690,8 @@ impl ExecEnv {
         (flows, arb_deltas)
     }
 
-    /// M4A: depth response to toxic flow (arb hits in a trailing window).
-    /// No-op under LpRegime::Frozen (M3R semantics).
+    /// LP-adaptation: depth response to toxic flow (arb hits in a trailing window).
+    /// No-op under LpRegime::Frozen (baseline-duopoly semantics).
     fn apply_lp_adaptation(&mut self, live: usize, arb_deltas: &[f64; 2]) {
         let (hits_needed, withdraw, recover, floor) = match self.cfg.lp_regime {
             LpRegime::Frozen => {
@@ -972,7 +972,7 @@ mod tests {
         assert!(log.pool_a_mid != mid_before || log.arb_delta_a != 0.0);
     }
 
-    /// M3R-E: observation schema whitelist. Every field must be a
+    /// baseline-duopoly-E: observation schema whitelist. Every field must be a
     /// decision-time quantity; adding a future-information field (future
     /// oracle, upcoming noise/arb) breaks this test until reviewed.
     #[test]
@@ -1015,7 +1015,7 @@ mod tests {
         assert_eq!(fields.len(), allowed.len());
     }
 
-    /// M3R-E: reward decomposition regression. The identity
+    /// baseline-duopoly-E: reward decomposition regression. The identity
     /// shortfall = drift + slippage_ex_fee + fee + gas + terminal_penalty
     /// must hold for every policy path, both completion rules.
     #[test]
@@ -1045,7 +1045,7 @@ mod tests {
         }
     }
 
-    /// M4: sensitivity layers must be exact no-ops at their defaults.
+    /// sensitivity: sensitivity layers must be exact no-ops at their defaults.
     #[test]
     fn m4_defaults_preserve_m3r_semantics() {
         let run = |lp: LpRegime, jit: JitRegime| {

@@ -1,10 +1,10 @@
 //! Multi-step planners over a forward model rebuilt from the observation.
 //!
-//! Promoted from the M3B/M3R binaries so the model semantics live in one
+//! Promoted from the value-boundary/baseline-duopoly binaries so the model semantics live in one
 //! reviewed place. Two planners share the model:
-//! - `DeterministicPlanner` (M3B): expectimax on expected noise volumes,
+//! - `DeterministicPlanner` (value-boundary): expectimax on expected noise volumes,
 //!   deterministic arbitrage, martingale oracle.
-//! - `StochasticPlanner` (M3R-D): Monte Carlo rollouts with shocks drawn
+//! - `StochasticPlanner` (baseline-duopoly-D): Monte Carlo rollouts with shocks drawn
 //!   from the simulator's own distributions, continuation actions from the
 //!   one-step lookahead heuristic on the model.
 //!
@@ -182,7 +182,7 @@ fn lookahead_action(cfg: &EnvConfig, kappa: f64, m: &Model) -> usize {
     best.0
 }
 
-/// M3B deterministic expectimax planner: expected noise volumes,
+/// value-boundary deterministic expectimax planner: expected noise volumes,
 /// deterministic arbitrage, martingale oracle (oracle unchanged, so the
 /// oracle/fee operator order is inert here).
 pub struct DeterministicPlanner {
@@ -284,7 +284,7 @@ impl ExecutionPolicy for DeterministicPlanner {
     }
 }
 
-/// M3R-D stochastic rollout planner: sampled shocks, lookahead
+/// baseline-duopoly-D stochastic rollout planner: sampled shocks, lookahead
 /// continuation, tuned kappa carry at the rollout leaf.
 pub struct StochasticPlanner {
     pub depth: usize,

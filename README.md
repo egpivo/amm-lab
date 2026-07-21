@@ -1,13 +1,15 @@
 # amm-lab
 
-Rust lab for AMM execution mechanics, on-chain causal identification, and
-closed-loop RL simulation. The repo holds **three tracks**:
+Rust lab for AMM execution mechanics, on-chain causal identification,
+closed-loop RL simulation, and LVR measurement under programmable hooks.
+The repo holds **four tracks**:
 
 | # | Track | Status |
 |---|---|---|
 | 1 | **AMM scenarios** — controlled-pool mechanics (practice) | stable |
-| 2 | **Paper — causality** — Uniswap protocol-fee switch, channel framework | [arXiv:2607.08525](https://arxiv.org/abs/2607.08525) |
-| 3 | **Paper — RL equilibrium** — execution routing in a dynamic-fee duopoly | [arXiv:2607.10960](https://arxiv.org/abs/2607.10960) |
+| 2 | **Paper — causality** — Causal Effects of Protocol-Fee Changes on Liquidity Provision in Automated Market Makers | [arXiv:2607.08525](https://arxiv.org/abs/2607.08525) |
+| 3 | **Paper — RL equilibrium** — Reinforcement Learning for Execution under Dynamic Fees in a Closed-Loop DEX Simulator | [arXiv:2607.10960](https://arxiv.org/abs/2607.10960) |
+| 4 | **Paper — LVR** — Policy-Selected Transaction Tapes in Automated Market Makers: Ranking Certification under Hidden Opportunities | arXiv TBD (title may change) |
 
 ## Build
 
@@ -39,6 +41,10 @@ Core code: `src/pool.rs`, `swap.rs`, `liquidity.rs`, `arbitrage.rs`, `scenario.r
 ---
 
 ## 2. Paper — causality
+
+**Causal Effects of Protocol-Fee Changes on Liquidity Provision in Automated
+Market Makers**
+([arXiv:2607.08525](https://arxiv.org/abs/2607.08525)).
 
 Event-study and channel-audit tooling for the protocol-fee-switch paper.
 Historical identification of LP-supply response (K_L); Campbell et al. (2025)
@@ -72,6 +78,10 @@ empirical estimand.
 
 ## 3. Paper — RL equilibrium
 
+**Reinforcement Learning for Execution under Dynamic Fees in a Closed-Loop
+DEX Simulator**
+([arXiv:2607.10960](https://arxiv.org/abs/2607.10960)).
+
 Closed-loop dynamic-fee duopoly: an execution agent's trades move inventory,
 quotes, fees, and arbitrage. PyTorch DQN trains through a Rust JSON bridge.
 
@@ -99,17 +109,45 @@ quotes, fees, and arbitrage. PyTorch DQN trains through a Rust JSON bridge.
 
 ---
 
+## 4. Paper — LVR
+
+**Policy-Selected Transaction Tapes in Automated Market Makers: Ranking
+Certification under Hidden Opportunities**
+(arXiv TBD; title may change).
+
+Policy-selected LVR under programmable hooks: latent opportunities as a
+marked point process, hooks as predictable output kernels, and ranking /
+certification limits when the mechanism also selects the observed tape.
+
+| Layer | Location |
+|---|---|
+| LVR runners | `lvr_*` binaries (`src/bin/lvr_*.rs`) |
+| Analysis scripts | `scripts/lvr/` |
+| Shared sim engine | `src/campbell/` (arrival / fee-policy simulation) |
+| PSTT / tape tooling | `src/pstt/`, `pstt_*` binaries |
+| Working manuscript | `.local/lvr/` (gitignored) |
+
+```bash
+# example: paired decomposition / grid diagnostics
+cargo run --release --bin lvr_paired_decomposition
+cargo run --release --bin lvr_grid_decomposition
+```
+
+---
+
 ## Module map
 
 ```
 src/
 ├── pool.rs, swap.rs, scenario.rs …     # (1) AMM scenarios
 ├── causal/, data/, audit/              # (2) causality paper
-├── campbell/                           # (2) model-conditioned diagnostic
+├── campbell/                           # (2) diagnostic + (4) LVR sim engine
 ├── sim/                                # (3) RL-equilibrium env
+├── pstt/                               # (4) LVR / policy-selected tapes
 scripts/
 ├── causality/                          # (2) ops → README.md
 ├── rl_equilibrium/                     # (3) ops → README.md
+├── lvr/                                # (4)
 data/
 ├── causality/                          # (2) on-chain panels & analysis
 ├── rl_equilibrium/                     # (3) paper artifacts

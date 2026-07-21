@@ -1,4 +1,4 @@
-"""M4: append DQN rows to m4_lp_adaptation.csv / m4_jit_mev.csv.
+"""sensitivity: append DQN rows to m4_lp_adaptation.csv / m4_jit_mev.csv.
 
 Frozen agent-first checkpoint (dqn_dynamic_duopoly.pt), ForcedTerminal,
 reserved seed blocks LP 95_000-95_499 / JIT 96_000-96_499. The DQN was

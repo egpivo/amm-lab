@@ -122,6 +122,7 @@ fn train(config: &SimConfig, policy_seed: u64) -> TabularLearnedFeePolicy {
                 external_price: cex_price,
                 amm_price: pool.marginal_price(),
                 oracle_gap_bps,
+                contemporaneous_gap_bps: oracle_gap_bps,
                 inventory_skew,
                 recent_vol: rolling_std(&log_rets),
                 recent_arb_frac: frac_true(&arb_flags),
@@ -175,6 +176,7 @@ fn train(config: &SimConfig, policy_seed: u64) -> TabularLearnedFeePolicy {
                 external_price: cex_price,
                 amm_price: pool.marginal_price(),
                 oracle_gap_bps: (pool.marginal_price() - cex_price) / cex_price * 10_000.0,
+                contemporaneous_gap_bps: (pool.marginal_price() - cex_price) / cex_price * 10_000.0,
                 inventory_skew: (pool.reserve_x - pool.reserve_y * cex_price)
                     / (pool.reserve_x + pool.reserve_y * cex_price),
                 recent_vol: rolling_std(&log_rets),

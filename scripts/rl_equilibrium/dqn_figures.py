@@ -1,4 +1,4 @@
-"""M3 figures + tables.
+"""validation-grid figures + tables.
 
 Inputs (out/): m1_results.csv, m3_fine_results.csv, m3_dqn_results.csv,
 m3_value_boundary.csv, m3_fine_actions.csv, m3_traj_*.csv, m3_dqn_curve.csv.
@@ -93,7 +93,7 @@ def fig_ladder(data) -> None:
     ax.invert_yaxis()
     ax.set_xlabel("implementation shortfall (bps), held-out seeds")
     ax.set_title(
-        "M3 value ladder, DynamicDuopoly (clairvoyant sees future shocks; not a policy)"
+        "validation-grid value ladder, DynamicDuopoly (clairvoyant sees future shocks; not a policy)"
     )
     style(ax)
     fig.tight_layout()
@@ -138,7 +138,7 @@ def fig_boundary(data) -> None:
     ax.set_xticks(ticks, labels, rotation=20, fontsize=9)
     ax.set_ylabel("shortfall (bps)")
     ax.set_title(
-        "M3B: schedule vs planning vs learning vs hindsight (dashed = tuned lookahead)"
+        "value-boundary: schedule vs planning vs learning vs hindsight (dashed = tuned lookahead)"
     )
     ax.grid(True, axis="y", alpha=0.25, linewidth=0.5)
     ax.spines[["top", "right"]].set_visible(False)
@@ -200,7 +200,7 @@ def fig_behavior_state() -> None:
     for ax in axes:
         ax.spines[["top", "right"]].set_visible(False)
         ax.grid(True, axis="y", alpha=0.25, linewidth=0.5)
-    fig.suptitle("M3C: state-conditional behavior (DynamicDuopoly test seeds)")
+    fig.suptitle("DQN-behavior: state-conditional behavior (DynamicDuopoly test seeds)")
     fig.tight_layout()
     fig.savefig(OUT / "m3_behavior_state.png", dpi=150)
     plt.close(fig)
@@ -237,7 +237,7 @@ def fig_trajectories(seeds: dict[str, str]) -> None:
         ax.grid(True, axis="y", alpha=0.25, linewidth=0.5)
     axes[0].set_ylabel("remaining Y (gray = oracle path)")
     axes[0].legend(frameon=False, fontsize=9)
-    fig.suptitle("M3C: representative episodes, DQN vs lookahead")
+    fig.suptitle("DQN-behavior: representative episodes, DQN vs lookahead")
     fig.tight_layout()
     fig.savefig(OUT / "m3_trajectories.png", dpi=150)
     plt.close(fig)
@@ -284,7 +284,7 @@ def behavior_table(data) -> None:
         "drift_bps",
         "terminal_penalty_bps",
     ]
-    print("\n=== M3C behavior table (DynamicDuopoly test means) ===")
+    print("\n=== DQN-behavior behavior table (DynamicDuopoly test means) ===")
     print(f"{'policy':<16}" + "".join(f"{c[:12]:>13}" for c in cols))
     for p in ["twap", "lookahead", "q_learner", "q_learner_fine", "dqn"]:
         if p not in data:

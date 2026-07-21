@@ -1,4 +1,4 @@
-"""M3: artifact diagnostics for the frozen DQN checkpoint.
+"""validation-grid: artifact diagnostics for the frozen DQN checkpoint.
 
 Evaluates the selected checkpoint greedily under perturbed environments on
 the same 300 test seeds as rl_equilibrium_artifact_battery, writing rows compatible with

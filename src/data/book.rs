@@ -53,6 +53,21 @@ impl Book {
         self.dirty = false;
     }
 
+    /// Initialized ticks `t` with `lo < t <= hi` (ascending) and their net
+    /// liquidity — the crossing ladder for piecewise band integration
+    /// (LVR deep-subset calibration; additive, does not affect panel code).
+    pub fn crossings(&mut self, lo: i32, hi: i32) -> Vec<(i32, i128)> {
+        if self.dirty {
+            self.rebuild();
+        }
+        let i = self.ticks.partition_point(|&t| t <= lo);
+        let j = self.ticks.partition_point(|&t| t <= hi);
+        self.ticks[i..j]
+            .iter()
+            .map(|&t| (t, self.net[&t]))
+            .collect()
+    }
+
     /// Active in-range liquidity at `tick` = sum of net over all ticks <= `tick`,
     /// clamped at zero. Rebuilds the cumulative only if the book changed since last call.
     pub fn active_l(&mut self, tick: i32) -> i128 {

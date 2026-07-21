@@ -69,12 +69,14 @@ def route_curve(rows: list[dict], policy: str) -> list[float]:
 
 
 def styled_panel() -> tuple[plt.Figure, plt.Axes]:
-    fig, ax = plt.subplots(figsize=(6.6, 5.0), dpi=200)
+    # Each image occupies half of one ACM column, so size the source canvas to
+    # the final subfigure instead of shrinking a full-width plot in LaTeX.
+    fig, ax = plt.subplots(figsize=(3.6, 2.7), dpi=200)
     ax.grid(axis="y", color=GRID, linewidth=0.8)
     ax.spines[["top", "right"]].set_visible(False)
     ax.spines["left"].set_color(GRID)
     ax.spines["bottom"].set_color(GRID)
-    ax.tick_params(axis="both", labelsize=15, colors=TEXT)
+    ax.tick_params(axis="both", labelsize=13, colors=TEXT)
     return fig, ax
 
 
@@ -96,29 +98,31 @@ def main() -> None:
 
     fig, ax = styled_panel()
     x = range(len(GAP_LABELS))
-    ax.plot(x, wait_curve(rows, "dqn"), marker="o", markersize=7, color=DQN,
-            linewidth=2.4, label="DQN")
-    ax.plot(x, wait_curve(rows, "lookahead"), marker="o", markersize=7,
-            color=LOOKAHEAD, linewidth=2.4, label="Tuned lookahead")
-    ax.set_xlabel("Best pool oracle gap (bps)", fontsize=16, labelpad=8)
-    ax.set_ylabel("Wait share (remaining > 0)", fontsize=16)
+    ax.plot(x, wait_curve(rows, "dqn"), marker="o", markersize=6.5, color=DQN,
+            linewidth=2.2, label="DQN")
+    ax.plot(x, wait_curve(rows, "lookahead"), marker="o", markersize=6.5,
+            color=LOOKAHEAD, linewidth=2.2, label="Lookahead")
+    ax.set_xlabel("Best-pool oracle gap (bps)", fontsize=14, labelpad=6)
+    ax.set_ylabel("Wait share", fontsize=14)
     ax.set_xticks(list(x), GAP_LABELS)
     ax.set_ylim(0.35, 0.85)
-    ax.legend(frameon=False, loc="upper left", fontsize=15)
+    ax.legend(frameon=False, loc="lower center", bbox_to_anchor=(0.5, 1.0),
+              ncol=2, fontsize=11.5, columnspacing=1.0, handletextpad=0.4)
     fig.tight_layout()
     fig.savefig(OUT / "m3_behavior_wait.png", bbox_inches="tight")
 
     fig, ax = styled_panel()
     x = range(len(FEE_LABELS))
-    ax.plot(x, route_curve(rows, "dqn"), marker="o", markersize=7, color=DQN,
-            linewidth=2.4, label="DQN")
-    ax.plot(x, route_curve(rows, "lookahead"), marker="o", markersize=7,
-            color=LOOKAHEAD, linewidth=2.4, label="Tuned lookahead")
-    ax.set_xlabel("Buy fee gap $A-B$ (bps)", fontsize=16, labelpad=8)
-    ax.set_ylabel("Single-pool trades routed to $A$", fontsize=16)
+    ax.plot(x, route_curve(rows, "dqn"), marker="o", markersize=6.5, color=DQN,
+            linewidth=2.2, label="DQN")
+    ax.plot(x, route_curve(rows, "lookahead"), marker="o", markersize=6.5,
+            color=LOOKAHEAD, linewidth=2.2, label="Lookahead")
+    ax.set_xlabel("Buy-fee gap $A-B$ (bps)", fontsize=14, labelpad=6)
+    ax.set_ylabel("Trades routed to $A$", fontsize=14)
     ax.set_xticks(list(x), FEE_LABELS)
     ax.set_ylim(-0.05, 1.05)
-    ax.legend(frameon=False, loc="upper right", fontsize=15)
+    ax.legend(frameon=False, loc="lower center", bbox_to_anchor=(0.5, 1.0),
+              ncol=2, fontsize=11.5, columnspacing=1.0, handletextpad=0.4)
     fig.tight_layout()
     fig.savefig(OUT / "m3_behavior_routing.png", bbox_inches="tight")
     print("wrote m3_behavior_wait.png, m3_behavior_routing.png")

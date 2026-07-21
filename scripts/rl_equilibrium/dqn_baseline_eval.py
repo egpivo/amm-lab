@@ -1,16 +1,16 @@
-"""M3R evaluation matrices for the trained DQN checkpoints.
+"""baseline-duopoly evaluation matrices for the trained DQN checkpoints.
 
 Produces (in out/):
-- DQN rows appended to m3r_completion.csv  (A: rules x {unconstrained, completion-aware})
-- m3r_priority.csv                          (B: train-order x test-order matrix)
-- m3r_dynamic_fee_ablation.csv              (C: mode-trained + cross-mode transfer)
-- m3r_symmetry.csv                          (G: pool-label swap)
+- DQN rows appended to baseline_completion.csv  (A: rules x {unconstrained, completion-aware})
+- baseline_priority.csv                          (B: train-order x test-order matrix)
+- baseline_dynamic_fee_ablation.csv              (C: mode-trained + cross-mode transfer)
+- baseline_symmetry.csv                          (G: pool-label swap)
 
 All evaluations use ForcedTerminal completion unless the cell says otherwise
 (completion.csv covers both rules). Reference lookahead/twap rows live in
-m3r_reference.csv / m3r_completion.csv (Rust-generated).
+baseline_reference.csv / baseline_completion.csv (Rust-generated).
 
-Usage: python dqn_m3r_eval.py [--n-seeds 300] [--n-completion 500]
+Usage: python dqn_baseline_eval.py [--n-seeds 300] [--n-completion 500]
 """
 
 import argparse
@@ -55,10 +55,10 @@ def main() -> None:
     ap.add_argument("--n-completion", type=int, default=500)
     args = ap.parse_args()
     with AmmExecutionEnv(mode="dynamic_duopoly") as env:
-        completion_path = OUT / "m3r_completion.csv"
+        completion_path = OUT / "baseline_completion.csv"
         if any(row["policy"].startswith("dqn") for row in read_csv(completion_path)):
             raise SystemExit(
-                "m3r_completion.csv already contains DQN rows; "
+                "baseline_completion.csv already contains DQN rows; "
                 "regenerate it with rl_equilibrium_completion before appending"
             )
         completion_rows = []
@@ -141,7 +141,7 @@ def main() -> None:
                     flush=True,
                 )
         write_csv(
-            OUT / "m3r_priority.csv",
+            OUT / "baseline_priority.csv",
             [
                 "train_order",
                 "test_order",
@@ -188,7 +188,7 @@ def main() -> None:
                 flush=True,
             )
         write_csv(
-            OUT / "m3r_dynamic_fee_ablation.csv",
+            OUT / "baseline_dynamic_fee_ablation.csv",
             [
                 "train_mode",
                 "test_mode",
@@ -225,7 +225,7 @@ def main() -> None:
                 flush=True,
             )
         write_csv(
-            OUT / "m3r_symmetry.csv",
+            OUT / "baseline_symmetry.csv",
             ["variant", "seed", "shortfall_bps", "completion_rate", "route_share_a"],
             symmetry_rows,
         )

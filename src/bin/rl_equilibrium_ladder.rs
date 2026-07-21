@@ -1,4 +1,4 @@
-//! M3B: how much execution value exists beyond one-step lookahead?
+//! value-boundary: how much execution value exists beyond one-step lookahead?
 //!
 //! Fair planners (valid policies, decision-time info only):
 //!   two_step / three_step: expectimax over the discrete actions on a
@@ -35,7 +35,7 @@ struct Args {
     /// Evaluation seed base (default: development test block).
     #[arg(long, default_value_t = TEST_BASE)]
     seed_base: u64,
-    /// "standard" (M3 default) or "forced_terminal" (paper headline rule).
+    /// "standard" (validation-grid default) or "forced_terminal" (paper headline rule).
     #[arg(long, default_value = "standard")]
     completion_rule: String,
     /// Optional trained Q-tables to include in the ladder.
@@ -234,7 +234,7 @@ fn main() {
 
     let n = args.n_seeds as f64;
     println!(
-        "\n=== M3B value boundary (DynamicDuopoly, {} test seeds) ===",
+        "\n=== value-boundary value boundary (DynamicDuopoly, {} test seeds) ===",
         args.n_seeds
     );
     for (name, is, comp) in &sums {

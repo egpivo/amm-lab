@@ -1,0 +1,8 @@
+{
+  "fixture_id": "e1_blocks_v1",
+  "kind": "synthetic",
+  "purpose": "Exact eligible-block extraction: window bounds, swap-only filter, dedupe, sorted union.",
+  "window_unix": [1704067200, 1704153600],
+  "row_key_rule": "pool lexical, block ascending; target blocks ascending unique",
+  "source": "hand-authored synthetic rows; not derived from frozen paper artifacts"
+}

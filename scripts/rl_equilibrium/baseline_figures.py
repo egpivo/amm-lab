@@ -1,4 +1,4 @@
-"""M3R figures: priority train x test heatmap, completion-rule comparison,
+"""baseline-duopoly figures: priority train x test heatmap, completion-rule comparison,
 final-block summary. Reads m3r_*.csv; writes PNGs to out/.
 """
 
@@ -20,8 +20,8 @@ ORDER_LABELS = {
 
 
 def fig_priority_heatmap() -> None:
-    rows = read_csv(OUT / "m3r_priority.csv")
-    ref = read_csv(OUT / "m3r_reference.csv")
+    rows = read_csv(OUT / "baseline_priority.csv")
+    ref = read_csv(OUT / "baseline_reference.csv")
     la = defaultdict(list)
     for r in ref:
         if (
@@ -79,12 +79,12 @@ def fig_priority_heatmap() -> None:
         fig.colorbar(im, ax=ax, shrink=0.8)
     fig.suptitle("Priority retraining under forced completion (development seeds)")
     fig.tight_layout()
-    fig.savefig(OUT / "m3r_priority_heatmap.png", dpi=150)
+    fig.savefig(OUT / "baseline_priority_heatmap.png", dpi=150)
     plt.close(fig)
 
 
 def fig_completion() -> None:
-    rows = read_csv(OUT / "m3r_completion.csv")
+    rows = read_csv(OUT / "baseline_completion.csv")
     cells = defaultdict(list)
     for r in rows:
         if r["seed_set"] == "test":
@@ -108,20 +108,20 @@ def fig_completion() -> None:
             ax.text(x, m + 1, f"{m:.0f}", ha="center", fontsize=8, color="#333333")
     ax.set_xticks(range(len(policies)), policies, fontsize=9)
     ax.set_ylabel("shortfall (bps, test mean)")
-    ax.set_title("M3R-A: standard vs forced-terminal completion (500 test seeds)")
+    ax.set_title("baseline-duopoly-A: standard vs forced-terminal completion (500 test seeds)")
     ax.set_ylim(0, ax.get_ylim()[1] * 1.15)
     ax.legend(frameon=False)
     ax.spines[["top", "right"]].set_visible(False)
     ax.grid(True, axis="y", alpha=0.25, linewidth=0.5)
     fig.tight_layout()
-    fig.savefig(OUT / "m3r_completion.png", dpi=150)
+    fig.savefig(OUT / "baseline_completion.png", dpi=150)
     plt.close(fig)
 
 
 def main() -> None:
     fig_priority_heatmap()
     fig_completion()
-    print("wrote m3r_priority_heatmap.png, m3r_completion.png")
+    print("wrote baseline_priority_heatmap.png, baseline_completion.png")
 
 
 if __name__ == "__main__":

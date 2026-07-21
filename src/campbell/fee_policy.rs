@@ -6,11 +6,16 @@ pub const RL_ACTIONS_BPS: [f64; 5] = [3.0, 6.0, 10.0, 20.0, 30.0];
 const N_ACTIONS: usize = 5;
 type QEntry = ([f64; N_ACTIONS], [u32; N_ACTIONS]);
 
+#[derive(Clone)]
 pub struct FeeObservation {
     pub step: usize,
     pub external_price: f64,
     pub amm_price: f64,
     pub oracle_gap_bps: f64,
+    /// Current pool gap against the contemporaneous external price.
+    /// Diagnostic only: policies continue to act on `oracle_gap_bps`,
+    /// which may use a stale external signal.
+    pub contemporaneous_gap_bps: f64,
     pub inventory_skew: f64,
     pub recent_vol: f64,
     pub recent_arb_frac: f64,

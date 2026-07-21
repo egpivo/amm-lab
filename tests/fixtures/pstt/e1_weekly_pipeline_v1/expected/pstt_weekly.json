@@ -1,0 +1,32 @@
+[
+  {
+    "pool": "0x0000000000000000000000000000000000000001",
+    "pair": "USDC/WETH",
+    "fee": 500,
+    "reference": "last_trade",
+    "week": "2024-01",
+    "L": 58.0,
+    "A": 68.0,
+    "B": 10.0,
+    "S": 4.0,
+    "observed_mass": 3,
+    "service_q2": 6.0,
+    "fill_count": 3,
+    "matched_count": 3
+  },
+  {
+    "pool": "0x0000000000000000000000000000000000000001",
+    "pair": "USDC/WETH",
+    "fee": 500,
+    "reference": "vwap1s",
+    "week": "2024-01",
+    "L": 8.0,
+    "A": 8.0,
+    "B": 0.0,
+    "S": 1.0,
+    "observed_mass": 1,
+    "service_q2": 1.0,
+    "fill_count": 3,
+    "matched_count": 1
+  }
+]

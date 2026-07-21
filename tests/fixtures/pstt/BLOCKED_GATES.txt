@@ -1,0 +1,29 @@
+PSTT parity gates blocked in this migration slice (2026-07-18)
+==============================================================
+
+E0 (source preservation): runnable — verify all freeze_manifest_*.sha256 under
+.local/selection_paper remain unchanged and pass shasum.
+
+E1 (small golden pipeline): covered by tests/fixtures/pstt/e1_* synthetic
+fixtures and tests/pstt_*_gate.rs. These are independently named synthetic
+rows, not subsets of frozen paper artifacts.
+
+E2 (frozen standalone application parity): BLOCKED
+  Missing local copies of:
+    - deep_subset_usdc_weth_swaps.csv.gz
+    - complete m6_block_ts.csv (local file is incomplete acquisition)
+    - binance_ethusdc_full / BBO archives
+  Additional provenance limit: build_m6_public.py derives bootstrap seeds via
+  Python salted hash(...) without recording PYTHONHASHSEED, so historical
+  inference draws are not exactly replayable even if inputs are recovered.
+
+E3 (frozen panel Stage-4 table parity): BLOCKED
+  Missing local copies of:
+    - events.csv.gz (SHA named by Stage-4 config)
+    - references/aggTrades archives (thousands of zip files)
+  Available locally: block timestamps, pool-blocks, inclusion/inventory, and
+  frozen Stage-4 output tables (usable as future goldens once inputs exist).
+
+Policy: do not start P1 projection/classification work until E2/E3 raw inputs
+are available and P0 frozen weekly parity is reviewed. Rust outputs must keep
+new names and must not edit historical freeze manifests.

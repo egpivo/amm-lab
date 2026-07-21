@@ -1,4 +1,4 @@
-"""M3R-F: final untouched paper seed block, 90_000-90_999.
+"""baseline-duopoly-F: final untouched paper seed block, 90_000-90_999.
 
 All design choices are FROZEN before this script runs (see
 m3r_run_manifest.json). Evaluates the frozen DQN checkpoints under the

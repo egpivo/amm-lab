@@ -1,0 +1,11 @@
+{
+  "fixture_id": "e1_staleness_v1",
+  "kind": "synthetic",
+  "purpose": "Block-level strict-pre staleness, nearest-rank quantiles, coverage gate.",
+  "notes": [
+    "pool1 blocks at T=1704110400 and 1704110410 -> staleness 10s and 15s from trades at 1704110390/1704110395",
+    "equal-time exclusion not triggered; coverage=1.0 for both pools",
+    "CSV trades only (no zip) because P0 forbids new zip dependency"
+  ],
+  "source": "hand-authored synthetic rows; not derived from frozen paper artifacts"
+}

@@ -53,10 +53,10 @@ binaries belong to the Campbell / causal track.
 | `gym_env.py` | Gymnasium-style wrapper around the bridge |
 | `dqn_core.py` | MLP Q-net, normalization, checkpoint load |
 | `dqn_train.py` | DQN training + checkpoint selection |
-| `dqn_diagnostics.py` | M3 artifact cells for DQN |
-| `dqn_m3r_eval.py` | M3R evaluation matrices |
+| `dqn_diagnostics.py` | validation-grid artifact cells for DQN |
+| `dqn_baseline_eval.py` | baseline-duopoly evaluation matrices |
 | `dqn_final_block.py` | Frozen 90k–90,999 seed block |
-| `dqn_m4_eval.py` | M4 LP/JIT sensitivity append |
+| `dqn_sensitivity_eval.py` | sensitivity LP/JIT sensitivity append |
 | `verify_paper_artifacts.py` | Assert headline numbers in `data/rl_equilibrium/` |
 | `make_manifest.py` | `data/rl_equilibrium/m3r_run_manifest.json` |
 
@@ -68,7 +68,7 @@ Dependencies: `requirements.txt` (torch 2.5.1, numpy, matplotlib).
 - `dynamic_monopoly` — single pool, linear dynamic-fee rule
 - `dynamic_duopoly` — two pools, each runs the rule against the other
 
-## M1/M2 (tabular learner + diagnostics)
+## closed-loop/policy-selected (tabular learner + diagnostics)
 
 ```bash
 ../../target/release/rl_equilibrium_train_tabular \
@@ -76,10 +76,10 @@ Dependencies: `requirements.txt` (torch 2.5.1, numpy, matplotlib).
 
 ../../target/release/rl_equilibrium_artifact_battery --n-seeds 300 --n-fresh 500
 
-python3 m1_m2_figures.py
+python3 tabular_figures.py
 ```
 
-## M3 (DQN + value boundary)
+## validation-grid (DQN + value boundary)
 
 ```bash
 ../../target/release/rl_equilibrium_train_tabular \
@@ -89,13 +89,13 @@ python3 m1_m2_figures.py
 
 python3 dqn_train.py --episodes 12000
 python3 dqn_diagnostics.py --n-seeds 300
-python3 m3_figures.py
+python3 dqn_figures.py
 ```
 
 Headline (DynamicDuopoly, 500 test seeds): DQN **85.9 bps** vs tuned lookahead
 **99.8** (paired −13.9 bps). Fine tabular ties lookahead.
 
-## M3R (reviewer round)
+## baseline-duopoly (reviewer round)
 
 ```bash
 make -C scripts/rl_equilibrium m3r-final

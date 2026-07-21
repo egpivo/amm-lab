@@ -1,5 +1,5 @@
-"""M3R-E: write out/m3r_run_manifest.json — environment, commands, seeds,
-checkpoint + CSV hashes, selected checkpoints. Run AFTER all M3R artifacts
+"""baseline-duopoly-E: write out/m3r_run_manifest.json — environment, commands, seeds,
+checkpoint + CSV hashes, selected checkpoints. Run AFTER all baseline-duopoly artifacts
 exist and choices are frozen.
 """
 
@@ -49,12 +49,12 @@ def main() -> None:
             "20_000-20_049 (DQN checkpoint selection)",
             "test": "30_000-30_499 (development-visible)",
             "fresh": "40_000-40_499 (used once per milestone)",
-            "final_paper": "90_000-90_999 (untouched until M3R-F freeze)",
+            "final_paper": "90_000-90_999 (untouched until baseline-duopoly-F freeze)",
         },
         "frozen_choices": {
             "learner": "DQN MLP 16-64-64-8, checkpoint by 50-seed validation",
             "headline_checkpoint": "dqn_order_after.pt evaluated agent-last "
-            "(conservative headline per M3R-B discipline); "
+            "(conservative headline per baseline-duopoly-B discipline); "
             "dqn_dynamic_duopoly.pt agent-first and dqn_order_random.pt "
             "random-order disclosed alongside",
             "completion_rule": "forced_terminal (all policies)",
@@ -76,7 +76,7 @@ def main() -> None:
             "./target/release/rl_equilibrium_completion --n-seeds 500",
             "./target/release/rl_equilibrium_reference --n-seeds 300",
             "./target/release/rl_equilibrium_planner --n-val 200 --n-seeds 300",
-            "python3 dqn_m3r_eval.py --n-seeds 300 --n-completion 500",
+            "python3 dqn_baseline_eval.py --n-seeds 300 --n-completion 500",
             "python3 dqn_final_block.py",
             "python3 verify_paper_artifacts.py",
             "python3 make_manifest.py",

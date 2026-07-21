@@ -1,4 +1,4 @@
-"""Train and evaluate the M3 DQN through the Rust bridge."""
+"""Train and evaluate the validation-grid DQN through the Rust bridge."""
 
 import argparse
 import random
@@ -28,12 +28,18 @@ def main() -> None:
     )
     parser.add_argument("--train-penalty", type=float, default=0.02)
     parser.add_argument("--tag", default="dynamic_duopoly")
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=7,
+        help="Framework seed for torch/random (independent training replicate).",
+    )
     args = parser.parse_args()
     if min(args.episodes, args.eval_every, args.n_val, args.n_test) <= 0:
         parser.error("episode and seed counts must be positive")
 
-    torch.manual_seed(7)
-    random.seed(7)
+    torch.manual_seed(args.seed)
+    random.seed(args.seed)
     torch.set_num_threads(1)
     OUT.mkdir(parents=True, exist_ok=True)
     train_ov = {
@@ -86,7 +92,7 @@ def main() -> None:
                         targets = (
                             rewards + (1.0 - dones) * target(next_states).max(1).values
                         )
-                    loss = loss_fn(values, targets)
+                    loss = loss_fn(values, targets.clone())
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
