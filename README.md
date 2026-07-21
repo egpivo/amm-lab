@@ -19,7 +19,8 @@ make test
 make help
 ```
 
-Requires Rust 2024 edition.
+Requires Rust 2024 edition. Operational detail for each paper track lives in
+its scripts README (below).
 
 ---
 
@@ -50,6 +51,21 @@ Historical identification of LP-supply response (K_L); Campbell et al. (2025)
 reduced-form model appears as a **compressed simulation diagnostic**, not the
 empirical estimand.
 
+- **Paper:** [Causal Effects of Protocol-Fee Changes on Liquidity Provision in Automated Market Makers](https://arxiv.org/abs/2607.08525) ([pdf](https://arxiv.org/pdf/2607.08525))
+- **Ops:** [`scripts/causality/README.md`](scripts/causality/README.md)
+
+```bibtex
+@misc{wang2026protocolfee,
+  title         = {Causal Effects of Protocol-Fee Changes on Liquidity Provision in Automated Market Makers},
+  author        = {Wang, Wen-Ting},
+  year          = {2026},
+  eprint        = {2607.08525},
+  archivePrefix = {arXiv},
+  primaryClass  = {stat.AP},
+  url           = {https://arxiv.org/abs/2607.08525}
+}
+```
+
 | Layer | Location |
 |---|---|
 | Event study / panel | `event_study`, `panel_report`, `panel_compare` |
@@ -57,19 +73,6 @@ empirical estimand.
 | Channel audit | `src/audit/`, `src/causal/` |
 | On-chain data | `src/data/`, `data/causality/` |
 | Model-conditioned sim | `src/campbell/`, `campbell_*` binaries, `scenarios/campbell_*.toml` |
-
-```bash
-# example: event-study coefficient path
-cargo run --release --bin event_study -- --estimate --out data/causality/analysis_r_cal0.25
-
-# Campbell diagnostic (optimal fee under reduced-form CEX+DEX)
-cargo run --release --bin campbell_fee_sweep
-cargo run --release --bin campbell_monte_carlo
-```
-
-Exploratory fee-policy sims (oracle-gap heuristics, tabular RL) live under
-`campbell_rl_*` and support the paper's identification-boundary discussion;
-they are not a separate paper track.
 
 ---
 
@@ -82,21 +85,27 @@ DEX Simulator**
 Closed-loop dynamic-fee duopoly: an execution agent's trades move inventory,
 quotes, fees, and arbitrage. PyTorch DQN trains through a Rust JSON bridge.
 
+- **Paper:** [Reinforcement Learning for Execution under Dynamic Fees in a Closed-Loop DEX Simulator](https://arxiv.org/abs/2607.10960) ([pdf](https://arxiv.org/pdf/2607.10960))
+- **Ops:** [`scripts/rl_equilibrium/README.md`](scripts/rl_equilibrium/README.md)
+
+```bibtex
+@misc{wang2026rldex,
+  title         = {Reinforcement Learning for Execution under Dynamic Fees in a Closed-Loop {DEX} Simulator},
+  author        = {Wang, Wen-Ting},
+  year          = {2026},
+  eprint        = {2607.10960},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  url           = {https://arxiv.org/abs/2607.10960}
+}
+```
+
 | Layer | Location |
 |---|---|
 | Simulator | `src/sim/` |
 | Rust runners | `rl_equilibrium_*` binaries |
 | DQN pipeline | `scripts/rl_equilibrium/` |
 | Paper artifacts | `data/rl_equilibrium/` (CSVs, checkpoints, figures, manifest) |
-
-```bash
-pip install -r scripts/rl_equilibrium/requirements.txt
-make -C scripts/rl_equilibrium help
-make -C scripts/rl_equilibrium verify    # checks data/rl_equilibrium/
-make -C scripts/rl_equilibrium train-dqn  # regenerates into data/rl_equilibrium/
-```
-
-**Docs:** [`scripts/rl_equilibrium/README.md`](scripts/rl_equilibrium/README.md)
 
 ---
 
@@ -136,8 +145,8 @@ src/
 ├── sim/                                # (3) RL-equilibrium env
 ├── pstt/                               # (4) LVR / policy-selected tapes
 scripts/
-├── causality/                          # (2)
-├── rl_equilibrium/                     # (3)
+├── causality/                          # (2) ops → README.md
+├── rl_equilibrium/                     # (3) ops → README.md
 ├── lvr/                                # (4)
 data/
 ├── causality/                          # (2) on-chain panels & analysis
