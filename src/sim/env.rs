@@ -23,6 +23,7 @@ use rand::Rng;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 pub const N_ACTIONS: usize = 8;
 
@@ -126,6 +127,33 @@ pub struct OrderSpec {
     pub quantity: f64,
     /// Horizon in steps.
     pub horizon: usize,
+}
+
+/// VTR-1 scenario file (JSON), shared by training, kappa tuning, reference and DQN evaluation:
+/// `{"name": "...", "sigma": 0.65}` for Group 1, or a `path_spec` for Groups 2-5.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ScenarioConfig {
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub sigma: Option<f64>,
+    #[serde(default)]
+    pub path_spec: PathSpec,
+}
+
+impl ScenarioConfig {
+    pub fn from_file(path: &str) -> Result<Self, String> {
+        let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
+        serde_json::from_str(&text).map_err(|e| format!("{path}: {e}"))
+    }
+
+    pub fn apply(&self, cfg: &mut EnvConfig) {
+        if let Some(sigma) = self.sigma {
+            cfg.sigma = sigma;
+        }
+        cfg.path_spec = self.path_spec;
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -338,6 +366,8 @@ pub struct StepResult {
 
 pub struct ExecEnv {
     pub cfg: EnvConfig,
+    /// Built once per environment (or shared via `with_scenario`); never rebuilt on reset.
+    scenario: Option<Arc<ScenarioGen>>,
     pools: Vec<Pool>,
     prices: Vec<f64>,
     t: usize,
@@ -375,7 +405,26 @@ pub struct ExecEnv {
 
 impl ExecEnv {
     pub fn new(cfg: EnvConfig) -> Self {
+        Self::with_scenario(cfg, None)
+    }
+
+    /// `scenario` lets callers share one prepared generator across environments; it must
+    /// match `cfg.path_spec`. Baseline configs never hold a generator.
+    pub fn with_scenario(cfg: EnvConfig, scenario: Option<Arc<ScenarioGen>>) -> Self {
+        let scenario = match (cfg.path_spec, scenario) {
+            (PathSpec::Baseline, _) => None,
+            (spec, Some(g)) => {
+                assert_eq!(
+                    g.spec(),
+                    spec,
+                    "shared ScenarioGen does not match cfg.path_spec"
+                );
+                Some(g)
+            }
+            (spec, None) => Some(Arc::new(ScenarioGen::new(spec))),
+        };
         let mut env = Self {
+            scenario,
             pools: Vec::new(),
             prices: Vec::new(),
             t: 0,
@@ -414,27 +463,16 @@ impl ExecEnv {
 
     pub fn reset(&mut self, seed: u64) {
         self.cfg.seed = seed;
-        self.prices = match self.cfg.path_spec {
-            PathSpec::Baseline => gbm_path(
-                self.cfg.order.horizon + 1,
-                self.cfg.s0,
-                self.cfg.mu,
-                self.cfg.sigma,
-                self.cfg.dt,
-                seed,
-            ),
-            spec => {
-                ScenarioGen::new(spec)
-                    .path(
-                        self.cfg.order.horizon + 1,
-                        self.cfg.s0,
-                        self.cfg.mu,
-                        self.cfg.sigma,
-                        self.cfg.dt,
-                        seed,
-                    )
-                    .0
-            }
+        let (n, s0, mu, sigma, dt) = (
+            self.cfg.order.horizon + 1,
+            self.cfg.s0,
+            self.cfg.mu,
+            self.cfg.sigma,
+            self.cfg.dt,
+        );
+        self.prices = match &self.scenario {
+            None => gbm_path(n, s0, mu, sigma, dt, seed),
+            Some(g) => g.path(n, s0, mu, sigma, dt, seed).0,
         };
         let fee = self.cfg.constant_fee;
         self.pools = (0..2)

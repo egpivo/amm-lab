@@ -99,6 +99,11 @@ pub struct PathTrace {
     pub eps_t: Vec<f64>,
 }
 
+thread_local! {
+    /// Per-thread count of `TruncT::new` constructions (tests assert caching).
+    pub static TRUNC_T_BUILDS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 /// Truncated standardized t: constants needed by the generator.
 pub struct TruncT {
     dist: StudentsT,
@@ -115,6 +120,7 @@ const MOM: usize = 10;
 
 impl TruncT {
     pub fn new(t: TInnov) -> Self {
+        TRUNC_T_BUILDS.with(|c| c.set(c.get() + 1));
         let dist = StudentsT::new(0.0, 1.0, t.nu).expect("nu > 0");
         let norm = StatNormal::new(0.0, 1.0).unwrap();
         let k = t.cap * (t.nu / (t.nu - 2.0)).sqrt();
@@ -250,6 +256,23 @@ impl ScenarioGen {
         0.5 * ((2.0 * s * s).exp() * num / den).ln()
     }
 
+    pub fn spec(&self) -> PathSpec {
+        self.spec
+    }
+
+    pub fn trunc_t(&self) -> Option<&TruncT> {
+        self.trunc_t.as_ref()
+    }
+
+    /// Drift correction m_t = ln E exp(sigma_t sqrt(dt) eps): closed form 0.5 sigma_t^2 dt for
+    /// Gaussian eps, the truncated-law cumulant otherwise (spec §§1, 5).
+    pub fn drift_constant(&self, sigma_t: f64, dt: f64) -> f64 {
+        match &self.trunc_t {
+            Some(tt) => tt.log_mgf(sigma_t * dt.sqrt()),
+            None => 0.5 * sigma_t * sigma_t * dt,
+        }
+    }
+
     pub fn path(
         &self,
         n_steps: usize,
@@ -299,10 +322,8 @@ impl ScenarioGen {
                 Some(v) if v.tau.is_some() => sigma_bar * (x - v.s * v.s).exp(),
                 _ => sig_const,
             };
-            let (eps, m) = match &self.trunc_t {
-                Some(tt) => (tt.eps(zt), tt.log_mgf(sig_t * dt.sqrt())),
-                None => (zt, 0.5 * sig_t * sig_t * dt),
-            };
+            let eps = self.trunc_t.as_ref().map_or(zt, |tt| tt.eps(zt));
+            let m = self.drift_constant(sig_t, dt);
             let next = prices.last().unwrap() * (mu * dt - m + sig_t * dt.sqrt() * eps).exp();
             prices.push(next);
             tr.sigma_t.push(sig_t);
@@ -395,6 +416,20 @@ mod vtr1_tests {
     fn episode_correction_matches_spec_section_3() {
         let g = ScenarioGen::new(PathSpec::Baseline);
         assert!((g.episode_correction(0.4, 2.5) - 0.14320).abs() < 1e-4);
+    }
+
+    #[test]
+    fn scenario_generator_builds_the_truncated_t_once() {
+        let g = ScenarioGen::new(PathSpec::Scenario {
+            sigma_bar: 0.5,
+            vol: None,
+            t: Some(TInnov { nu: 5.0, cap: 12.0 }),
+        });
+        let built = TRUNC_T_BUILDS.with(|c| c.get());
+        for seed in 0..50 {
+            g.path(51, 1000.0, 0.0, 0.5, DT, 200_000 + seed);
+        }
+        assert_eq!(TRUNC_T_BUILDS.with(|c| c.get()), built);
     }
 
     #[test]

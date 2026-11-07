@@ -6,6 +6,7 @@ overlaps a block of another use, or that leaves every block, aborts before any
 simulation. Protected uses (pilot, final, w0) additionally need an authorization file.
 """
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -67,11 +68,24 @@ def require(use: str, base: int, n: int, authorization: str | None = None) -> Bl
         raise SeedBlockError(
             f"seeds [{start},{end}) for use '{use}' are not inside a registered '{use}' block"
         )
-    if use in PROTECTED_USES and not (authorization and Path(authorization).is_file()):
-        raise SeedBlockError(
-            f"use '{use}' is protected: pass --authorization pointing to an existing authorization file"
-        )
+    block = inside[0]
+    if use in PROTECTED_USES:
+        _check_authorization(use, block, authorization)
     return inside[0]
+
+
+def _check_authorization(use: str, block: Block, authorization: str | None) -> None:
+    """A protected use needs a JSON file with scope == use and the block name in `blocks`."""
+    if not (authorization and Path(authorization).is_file()):
+        raise SeedBlockError(f"use '{use}' is protected: pass --authorization pointing to an existing file")
+    try:
+        record = json.loads(Path(authorization).read_text())
+    except ValueError as error:
+        raise SeedBlockError(f"authorization {authorization} is not JSON: {error}") from error
+    if record.get("scope") != use or block.name not in record.get("blocks", []):
+        raise SeedBlockError(
+            f"authorization {authorization} does not cover scope '{use}' / block {block.name}"
+        )
 
 
 def assert_registry_disjoint() -> None:

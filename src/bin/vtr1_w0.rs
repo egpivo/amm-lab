@@ -4,7 +4,7 @@
 //! Tolerances that the spec leaves OPEN are CLI options; without a value the
 //! affected check reports its numbers with status TOLERANCE_OPEN.
 
-use amm_lab::sim::oracle::{PathSpec, ScenarioGen, TInnov, TruncT, VolState};
+use amm_lab::sim::oracle::{PathSpec, ScenarioGen, TInnov, VolState};
 use clap::Parser;
 use serde_json::{Value, json};
 use statrs::distribution::{Continuous, ContinuousCDF, Normal as StatNormal, StudentsT};
@@ -37,20 +37,21 @@ struct Args {
     n_ep: u64,
     #[arg(long, default_value_t = 2_000)]
     n_days: u64,
-    #[arg(long, default_value = "out/VTR1_W0_AUTHORIZED.txt")]
+    #[arg(long, default_value = "out/VTR1_W0_AUTHORIZED.json")]
     authorization: String,
     #[arg(long, default_value = "out/vtr1_w0_diagnostics.json")]
     out: String,
-    /// OPEN tolerances (owner): without a value the check is reported TOLERANCE_OPEN.
-    #[arg(long)]
-    d2_drift_tol: Option<f64>,
-    #[arg(long)]
-    d2x_rel_tol: Option<f64>,
-    #[arg(long)]
-    d5b_rel_tol: Option<f64>,
-    /// OPEN: gate for the nu = 3 kurtosis (none unless given).
-    #[arg(long)]
-    kurt3_gate: Option<f64>,
+    /// D2 resolution requirement (owner decision 2026-11-07): 4*SE of the per-episode drift
+    /// (50 steps) must not exceed this many bps. It is a resolution requirement, not an
+    /// allowance for actual drift; the accuracy check |estimate| <= 4*SE stays.
+    #[arg(long, default_value_t = 2.0)]
+    d2_resolution_tol_bps_per_episode: f64,
+    /// D2x relative tolerance on the drift constant (owner decision: 1e-9).
+    #[arg(long, default_value_t = 1e-9)]
+    d2x_rel_tol: f64,
+    /// D5b relative tolerance on the standardization constant (owner decision: 1e-9).
+    #[arg(long, default_value_t = 1e-9)]
+    d5b_rel_tol: f64,
 }
 
 #[derive(Default, Clone)]
@@ -118,13 +119,33 @@ fn returns(p: &[f64]) -> Vec<f64> {
     (0..H).map(|t| (p[t + 1] / p[t]).ln()).collect()
 }
 
+/// The authorization must be an existing JSON file naming the W0 scope and both W0 seed blocks.
+fn check_authorization(path: &str) -> Result<(), String> {
+    let p = std::path::Path::new(path);
+    if !p.is_file() {
+        return Err(format!("{path} is not a file"));
+    }
+    let text = std::fs::read_to_string(p).map_err(|e| e.to_string())?;
+    let v: Value = serde_json::from_str(&text).map_err(|e| format!("{path}: not JSON ({e})"))?;
+    if v["scope"].as_str() != Some("W0") {
+        return Err(format!("{path}: scope must be \"W0\""));
+    }
+    let blocks: Vec<&str> = v["blocks"]
+        .as_array()
+        .map(|b| b.iter().filter_map(Value::as_str).collect())
+        .unwrap_or_default();
+    for need in ["w0_paths_DB1", "w0_days_DB2"] {
+        if !blocks.contains(&need) {
+            return Err(format!("{path}: blocks must include {need}"));
+        }
+    }
+    Ok(())
+}
+
 fn main() {
     let a = Args::parse();
-    if !std::path::Path::new(&a.authorization).exists() {
-        eprintln!(
-            "W0 diagnostics are not authorized: {} does not exist",
-            a.authorization
-        );
+    if let Err(why) = check_authorization(&a.authorization) {
+        eprintln!("W0 diagnostics are not authorized: {why}");
         std::process::exit(2);
     }
     assert!(DB1.0 + a.n_ep <= DB1.1, "n_ep exceeds the DB1 block");
@@ -156,7 +177,8 @@ fn main() {
         }
     };
     let gen_ = ScenarioGen::new(spec);
-    let tt = t.map(TruncT::new);
+    let tt = gen_.trunc_t();
+    let (mut sig_min, mut sig_max) = (a.sigma_bar, a.sigma_bar);
     let norm = StatNormal::new(0.0, 1.0).unwrap();
     let phi = a.tau.map(|tau| (-1.0 / tau).exp());
     let target_var = a.sigma_bar * a.sigma_bar;
@@ -174,6 +196,10 @@ fn main() {
     for j in 0..a.n_ep {
         let (p, tr) = gen_.path(H + 1, 1_000.0, 0.0, a.sigma_bar, DT, DB1.0 + j);
         let r = returns(&p);
+        for &sg in &tr.sigma_t[..tr.sigma_t.len().min(H)] {
+            sig_min = sig_min.min(sg);
+            sig_max = sig_max.max(sg);
+        }
         q.add(r.iter().map(|x| x * x / DT).sum::<f64>() / H as f64);
         drift.add(p.windows(2).take(H).map(|w| w[1] / w[0] - 1.0).sum::<f64>() / H as f64);
         if vol.is_some_and(|v| v.tau.is_none()) {
@@ -202,7 +228,7 @@ fn main() {
             czx.add((0..H).map(|t| tr.z_t[t] * x[t]).sum::<f64>() / H as f64);
             let _ = ph;
         }
-        if let Some(tt) = &tt {
+        if let Some(tt) = tt {
             let cap_std = tt.cap_raw / tt.sd;
             for &e in &tr.eps_t[..H] {
                 e2 += e * e;
@@ -220,32 +246,35 @@ fn main() {
     // D1: R tolerance 2% (relative), A on the relative deviation
     let (v_hat, se_rel) = (q.mean, q.sd() / n.sqrt() / target_var);
     d.push(diag("D1", 1.0, v_hat / target_var, se_rel, Some(0.02)));
-    // D2: accuracy only; practical tolerance is OPEN
-    let mut d2 = diag("D2", 0.0, drift.mean, drift.se(), a.d2_drift_tol);
+    // D2: A at z = 4; R: 4*SE of the per-episode drift (H steps) <= tolerance in bps
+    let tol_step = a.d2_resolution_tol_bps_per_episode * 1e-4 / H as f64;
+    let mut d2 = diag("D2", 0.0, drift.mean, drift.se(), Some(tol_step));
     d2["resolution_bps_per_episode"] = json!(4.0 * drift.se() * H as f64 * 1e4);
-    d2["practical_tolerance"] = json!(a.d2_drift_tol.map_or("OPEN".into(), |t| json!(t)));
+    d2["resolution_tol_bps_per_episode"] = json!(a.d2_resolution_tol_bps_per_episode);
     d.push(d2);
-    // D2x: independent quadrature for the t-law; Gaussian eps uses the closed form 0.5 a^2 (identity)
-    if let Some(tt) = &tt {
-        let rows: Vec<Value> = [0.1, 0.5, a.sigma_bar, 1.0, 2.0]
+    // D2x (all groups): implemented m_t vs an independent value at sigma values spanning the
+    // volatilities actually generated; closed form 0.5 sigma^2 dt for Gaussian eps, direct
+    // quadrature of the truncated law for t innovations.
+    {
+        let rows: Vec<Value> = [0.1, sig_min, a.sigma_bar, sig_max, 1.0, 2.0]
             .iter()
-            .map(|&s| {
-                let am = s * DT.sqrt();
-                let (m, mq) = (tt.log_mgf(am), tt.log_mgf_quadrature(am, 1_000_000));
-                json!({"sigma": s, "m_impl": m, "m_indep": mq, "rel_dev": (m - mq).abs() / (0.5 * am * am)})
+            .map(|&sg| {
+                let m = gen_.drift_constant(sg, DT);
+                let half = 0.5 * sg * sg * DT;
+                let m_indep = match tt {
+                    Some(tt) => tt.log_mgf_quadrature(sg * DT.sqrt(), 1_000_000),
+                    None => half,
+                };
+                json!({"sigma": sg, "m_impl": m, "m_indep": m_indep, "rel_dev": (m - m_indep).abs() / half})
             })
             .collect();
-        let status = match a.d2x_rel_tol {
-            None => "TOLERANCE_OPEN",
-            Some(tol) => {
-                if rows.iter().all(|r| r["rel_dev"].as_f64().unwrap() <= tol) {
-                    "PASS"
-                } else {
-                    "FAIL"
-                }
-            }
-        };
-        d.push(json!({"id": "D2x", "status": status, "rows": rows}));
+        let ok = rows
+            .iter()
+            .all(|r| r["rel_dev"].as_f64().unwrap() <= a.d2x_rel_tol);
+        d.push(
+            json!({"id": "D2x", "status": if ok {"PASS"} else {"FAIL"}, "rel_tol": a.d2x_rel_tol,
+            "observed_sigma_range": [sig_min, sig_max], "rows": rows}),
+        );
     }
     // D3 / D3x (Group 2)
     if let Some(v) = vol.filter(|v| v.tau.is_none()) {
@@ -305,7 +334,7 @@ fn main() {
         d.push(diag("D4e_z_x", 0.0, czx.mean, czx.se(), None));
     }
     // D5 (t innovations)
-    if let (Some(tt), Some(ti)) = (&tt, t) {
+    if let (Some(tt), Some(ti)) = (tt, t) {
         let nn = n_eps;
         let grid_ok = |lo: f64, hi: f64, m: usize, strict: bool| {
             let mut prev = tt.eps(lo);
@@ -319,15 +348,10 @@ fn main() {
         let mono = grid_ok(-8.5, 8.5, 1_000_000, false) && grid_ok(-6.0, 6.0, 100_000, true);
         let sd_q = simpson_sd(ti.nu, tt.cap_raw, 1_000_000);
         let sd_rel = (tt.sd - sd_q).abs() / sd_q;
-        let b_status = match a.d5b_rel_tol {
-            None => "TOLERANCE_OPEN",
-            Some(t) => {
-                if sd_rel <= t && e_max <= 1.0 + 1e-12 {
-                    "PASS"
-                } else {
-                    "FAIL"
-                }
-            }
+        let b_status = if sd_rel <= a.d5b_rel_tol && e_max <= 1.0 + 1e-12 {
+            "PASS"
+        } else {
+            "FAIL"
         };
         d.push(json!({"id": "D5a", "status": if mono {"PASS"} else {"FAIL"}}));
         d.push(json!({"id": "D5b", "status": b_status, "max_abs_over_cap": e_max, "sd_rel_dev_vs_quadrature": sd_rel}));
@@ -347,10 +371,7 @@ fn main() {
         k["status"] = if ti.nu >= 5.0 {
             json!(verdict((k_hat - kappa).abs() <= 4.0 * se_th, None))
         } else {
-            match a.kurt3_gate {
-                None => json!("REPORTED_GATE_OPEN"),
-                Some(g) => json!(verdict((k_hat - kappa).abs() <= g, None)),
-            }
+            json!("REPORTED_ONLY")
         };
         d.push(k);
     }
@@ -391,4 +412,30 @@ fn main() {
     let doc = json!({"scenario": {"group": a.group, "sigma_bar": a.sigma_bar, "tau": a.tau, "nu": a.nu,
         "s": a.s, "k": a.k, "cap": a.cap}, "n_ep": a.n_ep, "n_days": a.n_days, "diagnostics": d});
     std::fs::write(&a.out, serde_json::to_string_pretty(&doc).unwrap()).expect("write");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::check_authorization;
+
+    fn write(name: &str, body: &str) -> String {
+        let p = std::env::temp_dir().join(format!("vtr1_w0_auth_{}_{name}", std::process::id()));
+        std::fs::write(&p, body).unwrap();
+        p.to_string_lossy().into_owned()
+    }
+
+    #[test]
+    fn authorization_must_be_a_structured_w0_file() {
+        assert!(check_authorization("/nonexistent/auth.json").is_err());
+        assert!(check_authorization(&std::env::temp_dir().to_string_lossy()).is_err());
+        assert!(check_authorization(&write("txt", "ok")).is_err());
+        assert!(check_authorization(&write("scope", r#"{"scope":"final","blocks":[]}"#)).is_err());
+        let partial = write("partial", r#"{"scope":"W0","blocks":["w0_paths_DB1"]}"#);
+        assert!(check_authorization(&partial).is_err());
+        let ok = write(
+            "ok",
+            r#"{"scope":"W0","blocks":["w0_paths_DB1","w0_days_DB2"]}"#,
+        );
+        assert!(check_authorization(&ok).is_ok());
+    }
 }

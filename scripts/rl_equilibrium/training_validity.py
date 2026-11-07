@@ -3,69 +3,120 @@
 No RNG draw, no extra minibatch and no change to the update: every check is
 `torch.isfinite` on tensors the update already holds. A failure marks the run
 TRAINING_INVALID; the caller stops that run and downstream cells are NOT_ESTIMABLE.
+
+Checked: minibatch states / next states / rewards / dones; the complete online and
+target network outputs of the minibatch; the loss; gradients; online parameters and
+Adam `exp_avg` / `exp_avg_sq` after every optimizer step; the target network after
+every hard synchronization; every Q-value produced by the online network during
+validation. (The optional fixed reference probe is deliberately not implemented.)
 """
 
+import contextlib
 import json
 from pathlib import Path
 from typing import Iterable
 
 import torch
 
+NamedTensors = Iterable[tuple[str, torch.Tensor | None]]
+
 
 class TrainingInvalid(RuntimeError):
-    def __init__(self, step: int, quantity: str) -> None:
-        super().__init__(f"non-finite {quantity} at update {step}")
-        self.step, self.quantity = step, quantity
+    def __init__(self, step: int, quantity: str, location: dict | None = None) -> None:
+        super().__init__(f"non-finite {quantity} at update {step}: {location}")
+        self.step, self.quantity, self.location = step, quantity, location or {}
 
 
 class ValidityMonitor:
-    def __init__(self, enabled: bool) -> None:
+    def __init__(self, enabled: bool, context: dict | None = None) -> None:
         self.enabled = enabled
+        self.context: dict = dict(context or {})
         self.updates_checked = 0
-        self.failure: tuple[int, str] | None = None
+        self.counts: dict[str, dict[str, int]] = {}
+        self.failure: dict | None = None
+        self.phase = "train"
 
-    @staticmethod
-    def _finite(x: torch.Tensor) -> bool:
-        return bool(torch.isfinite(x).all())
+    # -- core -------------------------------------------------------------
+    def _check(self, step: int, name: str, items: NamedTensors) -> None:
+        entry = self.counts.setdefault(name, {"checked": 0, "nonfinite": 0})
+        for label, t in items:
+            if t is None:
+                continue
+            entry["checked"] += 1
+            finite = torch.isfinite(t)
+            if not bool(finite.all()):
+                entry["nonfinite"] += 1
+                flat = (~finite).flatten().nonzero()
+                index = int(flat[0])
+                self.failure = {
+                    "update": step,
+                    "quantity": name,
+                    "tensor": label,
+                    "flat_index": index,
+                    "value": repr(t.flatten()[index].item()),
+                    "n_nonfinite": int(flat.numel()),
+                }
+                raise TrainingInvalid(step, name, self.failure)
 
-    def _require(self, step: int, name: str, tensors: Iterable[torch.Tensor]) -> None:
-        for t in tensors:
-            if t is not None and not self._finite(t):
-                self.failure = (step, name)
-                raise TrainingInvalid(step, name)
-
-    def check_inputs(self, step, states, next_states, rewards) -> None:
+    # -- update-step checks -----------------------------------------------
+    def check_inputs(self, step, states, next_states, rewards, dones) -> None:
         if self.enabled:
-            self._require(step, "minibatch_input", (states, next_states, rewards))
+            self._check(
+                step,
+                "minibatch_input",
+                (("states", states), ("next_states", next_states), ("rewards", rewards), ("dones", dones)),
+            )
 
-    def check_forward(self, step, values, targets, loss) -> None:
+    def check_q_outputs(self, step, online_q, target_q, targets) -> None:
+        """Complete network outputs on the minibatch (not only the selected actions)."""
         if self.enabled:
-            self._require(step, "online_q", (values,))
-            self._require(step, "target_q", (targets,))
-            self._require(step, "loss", (loss.detach(),))
+            self._check(step, "online_q", (("online_q", online_q),))
+            self._check(step, "target_q", (("target_q", target_q), ("targets", targets)))
+
+    def check_loss(self, step, loss) -> None:
+        if self.enabled:
+            self._check(step, "loss", (("loss", loss.detach()),))
 
     def check_grads(self, step, net) -> None:
         if self.enabled:
-            self._require(step, "gradient", (p.grad for p in net.parameters()))
+            self._check(step, "gradient", ((n, p.grad) for n, p in net.named_parameters()))
 
     def check_after_step(self, step, net, optimizer) -> None:
         if not self.enabled:
             return
-        self._require(step, "parameters", (p.detach() for p in net.parameters()))
-        for p in net.parameters():
+        self._check(step, "parameters", ((n, p.detach()) for n, p in net.named_parameters()))
+        for n, p in net.named_parameters():
             state = optimizer.state.get(p, {})
-            self._require(step, "adam_exp_avg", (state.get("exp_avg"),))
-            self._require(step, "adam_exp_avg_sq", (state.get("exp_avg_sq"),))
+            self._check(step, "adam_exp_avg", ((n, state.get("exp_avg")),))
+            self._check(step, "adam_exp_avg_sq", ((n, state.get("exp_avg_sq")),))
         self.updates_checked += 1
 
+    def check_target_sync(self, step, target) -> None:
+        if self.enabled:
+            self._check(step, "target_network", ((n, p.detach()) for n, p in target.named_parameters()))
+
+    # -- validation Q-values ----------------------------------------------
+    def eval_forward_hook(self, module, inputs, output) -> None:
+        if self.enabled and self.phase == "eval":
+            self._check(int(self.context.get("episodes_completed", 0)), "validation_q", (("validation_q", output),))
+
+    @contextlib.contextmanager
+    def eval_scope(self):
+        self.phase = "eval"
+        try:
+            yield
+        finally:
+            self.phase = "train"
+
+    # -- record -----------------------------------------------------------
     def record(self, tag: str) -> dict:
         return {
             "tag": tag,
             "status": "TRAINING_INVALID" if self.failure else "VALID",
             "updates_checked": self.updates_checked,
-            "first_failure": None
-            if self.failure is None
-            else {"update": self.failure[0], "quantity": self.failure[1]},
+            "check_counts": self.counts,
+            "first_failure": self.failure,
+            **self.context,
         }
 
     def write(self, path: Path, tag: str) -> None:

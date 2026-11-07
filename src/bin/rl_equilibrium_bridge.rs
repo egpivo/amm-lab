@@ -12,8 +12,10 @@
 //! See scripts/rl_equilibrium/gym_env.py for the Python wrapper.
 
 use amm_lab::sim::env::{EnvConfig, ExecEnv, MarketMode, N_ACTIONS};
+use amm_lab::sim::oracle::{PathSpec, ScenarioGen};
 use serde_json::{Value, json};
 use std::io::{BufRead, Write};
+use std::sync::Arc;
 
 fn parse_mode(s: &str) -> MarketMode {
     match s {
@@ -44,6 +46,7 @@ fn main() {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout().lock();
 
+    let mut scen_cache: Option<(PathSpec, Arc<ScenarioGen>)> = None;
     let mut env = ExecEnv::new(EnvConfig::baseline(MarketMode::DynamicDuopoly, 0));
     let obs_dim = env.observe().to_vec().len();
     writeln!(
@@ -120,21 +123,29 @@ fn main() {
                 }
                 // VTR-1 scenario: absent means baseline; a malformed spec is an error, never a fallback.
                 let spec_err = match req.get("path_spec") {
-                    Some(sp) => {
-                        match serde_json::from_value::<amm_lab::sim::oracle::PathSpec>(sp.clone()) {
-                            Ok(spec) => {
-                                cfg.path_spec = spec;
-                                None
-                            }
-                            Err(e) => Some(e.to_string()),
+                    Some(sp) => match serde_json::from_value::<PathSpec>(sp.clone()) {
+                        Ok(spec) => {
+                            cfg.path_spec = spec;
+                            None
                         }
-                    }
+                        Err(e) => Some(e.to_string()),
+                    },
                     None => None,
                 };
                 if let Some(message) = spec_err {
                     json!({"type": "error", "message": message})
                 } else {
-                    env = ExecEnv::new(cfg);
+                    // one prepared generator per distinct spec, reused across resets
+                    let shared = match cfg.path_spec {
+                        PathSpec::Baseline => None,
+                        spec => {
+                            if scen_cache.as_ref().is_none_or(|(s, _)| *s != spec) {
+                                scen_cache = Some((spec, Arc::new(ScenarioGen::new(spec))));
+                            }
+                            scen_cache.as_ref().map(|(_, g)| g.clone())
+                        }
+                    };
+                    env = ExecEnv::with_scenario(cfg, shared);
                     state_msg(&env, "state", None, false, "rl")
                 }
             }

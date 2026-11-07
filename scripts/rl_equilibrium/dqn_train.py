@@ -1,6 +1,9 @@
 """Train and evaluate the validation-grid DQN through the Rust bridge."""
 
 import argparse
+import hashlib
+import json
+import subprocess
 import random
 import time
 from pathlib import Path
@@ -12,6 +15,7 @@ import torch.nn as nn
 
 import sys
 
+import scenario_config
 import seed_blocks
 from common import OUT, write_csv
 from dqn_core import QNet, evaluate, greedy_action, greedy_episode, normalize, reset_env
@@ -49,18 +53,83 @@ def main() -> None:
         help="VTR-1 technical training-validity checks; writes a per-run validity record.",
     )
     parser.add_argument("--validity-out", default=None)
+    parser.add_argument(
+        "--scenario", default=None, help="VTR-1 scenario JSON (default: baseline)."
+    )
+    parser.add_argument(
+        "--train-role",
+        choices=["train", "pilot_train"],
+        default="train",
+        help="pilot_train is the protected timing-pilot training block.",
+    )
+    parser.add_argument(
+        "--authorization", default=None, help="Authorization JSON for protected roles."
+    )
+    parser.add_argument(
+        "--no-test-eval",
+        action="store_true",
+        help="Skip the development test/fresh evaluation (VTR-1 runs evaluate via vtr1_eval.py).",
+    )
+    parser.add_argument("--replicate-id", default=None)
+    parser.add_argument(
+        "--out-dir",
+        default=None,
+        help="Output directory (default: the archived data/rl_equilibrium). VTR-1 runs "
+        "(--scenario/--check-finite/pilot role) must set it and never overwrite files.",
+    )
     args = parser.parse_args()
     if min(args.episodes, args.eval_every, args.n_val, args.n_test) <= 0:
         parser.error("episode and seed counts must be positive")
 
-    seed_blocks.require("train", args.train_seed_base, args.episodes)
-    seed_blocks.require("val", args.val_seed_base, args.n_val)
-    seed_blocks.require("eval", args.test_seed_base, args.n_test)
-    seed_blocks.require("eval", args.fresh_seed_base, args.n_test)
+    train_block = seed_blocks.require(
+        args.train_role, args.train_seed_base, args.episodes, args.authorization
+    )
+    val_block = seed_blocks.require("val", args.val_seed_base, args.n_val)
+    if not args.no_test_eval:
+        seed_blocks.require("eval", args.test_seed_base, args.n_test)
+        seed_blocks.require("eval", args.fresh_seed_base, args.n_test)
 
-    monitor = ValidityMonitor(args.check_finite)
+    vtr1_run = bool(args.scenario or args.check_finite or args.train_role != "train")
+    if vtr1_run and args.out_dir is None:
+        parser.error("VTR-1 runs must pass --out-dir (archived outputs are never written)")
+    out_dir = Path(args.out_dir) if args.out_dir else OUT
+    if vtr1_run:
+        for name in (f"dqn_{args.tag}.pt", f"m3_dqn_curve_{args.tag}.csv", f"validity_{args.tag}.json"):
+            if (out_dir / name).exists():
+                parser.error(f"{out_dir / name} exists; VTR-1 runs never overwrite")
+    args.out_dir = str(out_dir)
+
+    monitor = ValidityMonitor(
+        args.check_finite,
+        {
+            "commit": _git("rev-parse", "HEAD"),
+            "worktree_dirty": bool(_git("status", "--porcelain")),
+            "config_sha256": hashlib.sha256(
+                json.dumps(vars(args), sort_keys=True, default=str).encode()
+            ).hexdigest(),
+            "scenario_file": args.scenario,
+            "scenario_sha256": scenario_config.file_sha256(args.scenario),
+            "market_mode": args.mode,
+            "agent_order": args.agent_order,
+            "replicate_id": args.replicate_id,
+            "framework_seed": args.seed,
+            "training_block": {
+                "name": train_block.name,
+                "base": args.train_seed_base,
+                "episodes_scheduled": args.episodes,
+            },
+            "validation_block": {
+                "name": val_block.name,
+                "base": args.val_seed_base,
+                "n": args.n_val,
+            },
+            "episodes_completed": 0,
+            "evaluations_scheduled": args.episodes // args.eval_every,
+            "evaluations_completed": 0,
+        },
+    )
     validity_path = (
-        OUT / f"validity_{args.tag}.json"
+        out_dir / f"validity_{args.tag}.json"
         if args.validity_out is None
         else Path(args.validity_out)
     )
@@ -74,22 +143,36 @@ def main() -> None:
         monitor.write(validity_path, args.tag)
 
 
+def _git(*cmd: str) -> str:
+    try:
+        return subprocess.run(
+            ["git", *cmd], capture_output=True, text=True, check=True
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return "unknown"
+
+
 def run(args: argparse.Namespace, monitor: ValidityMonitor) -> None:
     torch.manual_seed(args.seed)
     random.seed(args.seed)
     torch.set_num_threads(1)
-    OUT.mkdir(parents=True, exist_ok=True)
+    out = Path(args.out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    scenario = scenario_config.overrides(args.scenario)
     train_ov = {
         "agent_order": args.agent_order,
         "unfinished_penalty": args.train_penalty,
+        **scenario,
     }
-    eval_ov = {"agent_order": args.agent_order}
+    eval_ov = {"agent_order": args.agent_order, **scenario}
     with AmmExecutionEnv(mode=args.mode) as env:
         net = QNet(env.obs_dim, env.n_actions)
         target = QNet(env.obs_dim, env.n_actions)
         target.load_state_dict(net.state_dict())
         optimizer = torch.optim.Adam(net.parameters(), lr=1e-3)
         loss_fn = nn.SmoothL1Loss()
+        if monitor.enabled:
+            net.register_forward_hook(monitor.eval_forward_hook)
 
         replay: deque[ReplayItem] = deque(maxlen=200_000)
         batch_size, warmup, sync_every = 64, 5_000, 2_000
@@ -97,6 +180,7 @@ def run(args: argparse.Namespace, monitor: ValidityMonitor) -> None:
         curve: list[dict[str, float | int]] = []
         best_value = float("inf")
         best_state: dict[str, torch.Tensor] | None = None
+        best_episode = 0
         val_seeds = range(args.val_seed_base, args.val_seed_base + args.n_val)
         started_at = time.monotonic()
 
@@ -124,14 +208,15 @@ def run(args: argparse.Namespace, monitor: ValidityMonitor) -> None:
                     rewards = torch.tensor([item[2] for item in sample])
                     next_states = torch.stack([item[3] for item in sample])
                     dones = torch.tensor([float(item[4]) for item in sample])
-                    monitor.check_inputs(step_count, states, next_states, rewards)
-                    values = net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+                    monitor.check_inputs(step_count, states, next_states, rewards, dones)
+                    online_q = net(states)
+                    values = online_q.gather(1, actions.unsqueeze(1)).squeeze(1)
                     with torch.inference_mode():
-                        targets = (
-                            rewards + (1.0 - dones) * target(next_states).max(1).values
-                        )
+                        target_q = target(next_states)
+                        targets = rewards + (1.0 - dones) * target_q.max(1).values
                     loss = loss_fn(values, targets.clone())
-                    monitor.check_forward(step_count, values, targets, loss)
+                    monitor.check_q_outputs(step_count, online_q, target_q, targets)
+                    monitor.check_loss(step_count, loss)
                     optimizer.zero_grad()
                     loss.backward()
                     monitor.check_grads(step_count, net)
@@ -139,15 +224,20 @@ def run(args: argparse.Namespace, monitor: ValidityMonitor) -> None:
                     monitor.check_after_step(step_count, net, optimizer)
                 if step_count % sync_every == 0:
                     target.load_state_dict(net.state_dict())
+                    monitor.check_target_sync(step_count, target)
+            monitor.context["episodes_completed"] = episode + 1
 
             if (episode + 1) % args.eval_every == 0:
-                value = evaluate(env, net, val_seeds, args.mode, **eval_ov)
+                with monitor.eval_scope():
+                    value = evaluate(env, net, val_seeds, args.mode, **eval_ov)
+                monitor.context["evaluations_completed"] += 1
                 curve.append(
                     {"episode": episode + 1, "val_shortfall_bps": value, "eps": epsilon}
                 )
                 marker = ""
                 if value < best_value:
                     best_value = value
+                    best_episode = episode + 1
                     best_state = {
                         key: tensor.detach().cpu().clone()
                         for key, tensor in net.state_dict().items()
@@ -161,7 +251,10 @@ def run(args: argparse.Namespace, monitor: ValidityMonitor) -> None:
                 )
 
         if best_state is None:
-            best_value = evaluate(env, net, val_seeds, args.mode, **eval_ov)
+            with monitor.eval_scope():
+                best_value = evaluate(env, net, val_seeds, args.mode, **eval_ov)
+            monitor.context["evaluations_completed"] += 1
+            best_episode = args.episodes
             best_state = {
                 key: tensor.detach().cpu().clone()
                 for key, tensor in net.state_dict().items()
@@ -175,24 +268,35 @@ def run(args: argparse.Namespace, monitor: ValidityMonitor) -> None:
             )
 
         net.load_state_dict(best_state)
-        torch.save(net.state_dict(), OUT / f"dqn_{args.tag}.pt")
+        checkpoint = out / f"dqn_{args.tag}.pt"
+        torch.save(net.state_dict(), checkpoint)
+        monitor.context["selected_checkpoint"] = {
+            "episode": best_episode,
+            "path": str(checkpoint),
+            "sha256": hashlib.sha256(checkpoint.read_bytes()).hexdigest(),
+        }
         write_csv(
-            OUT / f"m3_dqn_curve_{args.tag}.csv",
+            out / f"m3_dqn_curve_{args.tag}.csv",
             ["episode", "val_shortfall_bps", "eps"],
             curve,
         )
 
         results = []
         for label, base in (
-            ("test", args.test_seed_base),
-            ("fresh", args.fresh_seed_base),
+            ()
+            if args.no_test_eval
+            else (
+                ("test", args.test_seed_base),
+                ("fresh", args.fresh_seed_base),
+            )
         ):
             for seed in range(base, base + args.n_test):
                 summary = greedy_episode(env, net, seed, args.mode, **eval_ov)
                 results.append(
                     {"policy": f"dqn_{args.tag}", "seed_set": label, **summary}
                 )
-        write_csv(OUT / f"m3_dqn_results_{args.tag}.csv", list(results[0]), results)
+        if results:
+            write_csv(out / f"m3_dqn_results_{args.tag}.csv", list(results[0]), results)
     print("selected checkpoint val IS:", round(best_value, 2))
 
 
