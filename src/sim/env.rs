@@ -145,7 +145,19 @@ pub struct ScenarioConfig {
 impl ScenarioConfig {
     pub fn from_file(path: &str) -> Result<Self, String> {
         let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
-        serde_json::from_str(&text).map_err(|e| format!("{path}: {e}"))
+        Self::from_json(&text).map_err(|e| format!("{path}: {e}"))
+    }
+
+    /// Strict parse: unknown keys, wrong JSON types and out-of-range values are errors.
+    pub fn from_json(text: &str) -> Result<Self, String> {
+        let cfg: Self = serde_json::from_str(text).map_err(|e| e.to_string())?;
+        if let Some(sigma) = cfg.sigma
+            && !(sigma.is_finite() && sigma > 0.0)
+        {
+            return Err(format!("sigma must be finite and > 0, got {sigma}"));
+        }
+        cfg.path_spec.validate()?;
+        Ok(cfg)
     }
 
     pub fn apply(&self, cfg: &mut EnvConfig) {

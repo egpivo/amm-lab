@@ -8,7 +8,8 @@ import random
 import time
 from pathlib import Path
 from collections import deque
-from typing import TypeAlias
+from statistics import mean
+from typing import Callable, NamedTuple, NoReturn, TypeAlias
 
 import torch
 import torch.nn as nn
@@ -18,7 +19,7 @@ import sys
 import scenario_config
 import seed_blocks
 from common import OUT, write_csv
-from dqn_core import QNet, evaluate, greedy_action, greedy_episode, normalize, reset_env
+from dqn_core import QNet, greedy_action, greedy_episode, normalize, reset_env
 from gym_env import AmmExecutionEnv
 from training_validity import TrainingInvalid, ValidityMonitor
 
@@ -58,9 +59,10 @@ def main() -> None:
     )
     parser.add_argument(
         "--train-role",
-        choices=["train", "pilot_train"],
+        choices=["train", "vtr1_train", "pilot_train"],
         default="train",
-        help="pilot_train is the protected timing-pilot training block.",
+        help="train = legacy (unchanged). vtr1_train (W6 blocks) and pilot_train are protected: "
+        "they require --scenario, --authorization and --out-dir, and always run the finite checks.",
     )
     parser.add_argument(
         "--authorization", default=None, help="Authorization JSON for protected roles."
@@ -78,26 +80,7 @@ def main() -> None:
         "(--scenario/--check-finite/pilot role) must set it and never overwrite files.",
     )
     args = parser.parse_args()
-    if min(args.episodes, args.eval_every, args.n_val, args.n_test) <= 0:
-        parser.error("episode and seed counts must be positive")
-
-    train_block = seed_blocks.require(
-        args.train_role, args.train_seed_base, args.episodes, args.authorization
-    )
-    val_block = seed_blocks.require("val", args.val_seed_base, args.n_val)
-    if not args.no_test_eval:
-        seed_blocks.require("eval", args.test_seed_base, args.n_test)
-        seed_blocks.require("eval", args.fresh_seed_base, args.n_test)
-
-    vtr1_run = bool(args.scenario or args.check_finite or args.train_role != "train")
-    if vtr1_run and args.out_dir is None:
-        parser.error("VTR-1 runs must pass --out-dir (archived outputs are never written)")
-    out_dir = Path(args.out_dir) if args.out_dir else OUT
-    if vtr1_run:
-        for name in (f"dqn_{args.tag}.pt", f"m3_dqn_curve_{args.tag}.csv", f"validity_{args.tag}.json"):
-            if (out_dir / name).exists():
-                parser.error(f"{out_dir / name} exists; VTR-1 runs never overwrite")
-    args.out_dir = str(out_dir)
+    plan = resolve(args, parser.error)
 
     monitor = ValidityMonitor(
         args.check_finite,
@@ -114,12 +97,12 @@ def main() -> None:
             "replicate_id": args.replicate_id,
             "framework_seed": args.seed,
             "training_block": {
-                "name": train_block.name,
+                "name": plan.train_block.name,
                 "base": args.train_seed_base,
                 "episodes_scheduled": args.episodes,
             },
             "validation_block": {
-                "name": val_block.name,
+                "name": plan.val_block.name,
                 "base": args.val_seed_base,
                 "n": args.n_val,
             },
@@ -128,19 +111,100 @@ def main() -> None:
             "evaluations_completed": 0,
         },
     )
-    validity_path = (
-        out_dir / f"validity_{args.tag}.json"
-        if args.validity_out is None
-        else Path(args.validity_out)
-    )
+    validity_path = plan.validity_path
     try:
-        run(args, monitor)
+        run(args, monitor, plan)
     except TrainingInvalid as error:
         monitor.write(validity_path, args.tag)
         print(f"TRAINING_INVALID: {error}", file=sys.stderr, flush=True)
         sys.exit(3)
     if args.check_finite:
         monitor.write(validity_path, args.tag)
+
+
+class Plan(NamedTuple):
+    train_block: seed_blocks.Block
+    val_block: seed_blocks.Block
+    out_dir: Path
+    validity_path: Path
+    outputs: list[Path]
+    train_ov: dict
+    val_ov: dict
+    eval_ov: dict
+
+
+def resolve(args: argparse.Namespace, fail: Callable[[str], NoReturn]) -> Plan:
+    """Validate roles, authorization, seed blocks and output paths. Creates nothing.
+
+    Legacy role `train` keeps its historical behavior. The protected roles `vtr1_train` and
+    `pilot_train` force the finite checks on, skip the development test evaluation, need a
+    scenario file, an authorization and a fresh --out-dir, and validate with forced-terminal
+    completion (the VTR-1 evaluation rule).
+    """
+    if min(args.episodes, args.eval_every, args.n_val, args.n_test) <= 0:
+        fail("episode and seed counts must be positive")
+    legacy = args.train_role == "train"
+    if legacy and args.scenario:
+        fail("--scenario requires --train-role vtr1_train or pilot_train")
+    if not legacy:
+        if not args.scenario:
+            fail("protected VTR-1 roles require --scenario")
+        if args.out_dir is None:
+            fail("protected VTR-1 roles require --out-dir")
+        args.check_finite = True  # cannot be bypassed
+        args.no_test_eval = True  # no development-block evaluation or archived CSVs
+    scenario = scenario_config.overrides(args.scenario)
+    train_block = seed_blocks.require(
+        args.train_role, args.train_seed_base, args.episodes, args.authorization
+    )
+    val_block = seed_blocks.require(
+        "val" if legacy else "vtr1_val",
+        args.val_seed_base,
+        args.n_val,
+        args.authorization,
+        scope=None if legacy else args.train_role,
+    )
+    if not args.no_test_eval:
+        seed_blocks.require("eval", args.test_seed_base, args.n_test)
+        seed_blocks.require("eval", args.fresh_seed_base, args.n_test)
+
+    careful = not legacy or args.check_finite
+    if careful and args.out_dir is None:
+        fail("runs with finite checks must pass --out-dir (archived outputs are never written)")
+    out_dir = Path(args.out_dir) if args.out_dir else OUT
+    validity_path = (
+        Path(args.validity_out) if args.validity_out else out_dir / f"validity_{args.tag}.json"
+    )
+    outputs = [
+        out_dir / f"dqn_{args.tag}.pt",
+        out_dir / f"m3_dqn_curve_{args.tag}.csv",
+        validity_path,
+    ]
+    if not args.no_test_eval:
+        outputs.append(out_dir / f"m3_dqn_results_{args.tag}.csv")
+    if careful:
+        seed_blocks.check_new_outputs(outputs)
+    args.out_dir = str(out_dir)
+    eval_ov = {"agent_order": args.agent_order, **scenario}
+    return Plan(
+        train_block,
+        val_block,
+        out_dir,
+        validity_path,
+        outputs,
+        {"agent_order": args.agent_order, "unfinished_penalty": args.train_penalty, **scenario},
+        eval_ov if legacy else {**eval_ov, "completion_rule": "forced_terminal"},
+        eval_ov,
+    )
+
+
+def validate(env, net, seeds, mode, monitor: ValidityMonitor, **overrides) -> float:
+    """Mean validation shortfall; same value as dqn_core.evaluate, with location tracking."""
+    values = []
+    for seed in seeds:
+        monitor.begin_validation_episode(seed)
+        values.append(greedy_episode(env, net, seed, mode, **overrides)["shortfall_bps"])
+    return mean(values)
 
 
 def _git(*cmd: str) -> str:
@@ -152,19 +216,13 @@ def _git(*cmd: str) -> str:
         return "unknown"
 
 
-def run(args: argparse.Namespace, monitor: ValidityMonitor) -> None:
+def run(args: argparse.Namespace, monitor: ValidityMonitor, plan: Plan) -> None:
     torch.manual_seed(args.seed)
     random.seed(args.seed)
     torch.set_num_threads(1)
-    out = Path(args.out_dir)
+    out = plan.out_dir
     out.mkdir(parents=True, exist_ok=True)
-    scenario = scenario_config.overrides(args.scenario)
-    train_ov = {
-        "agent_order": args.agent_order,
-        "unfinished_penalty": args.train_penalty,
-        **scenario,
-    }
-    eval_ov = {"agent_order": args.agent_order, **scenario}
+    train_ov, val_ov, eval_ov = plan.train_ov, plan.val_ov, plan.eval_ov
     with AmmExecutionEnv(mode=args.mode) as env:
         net = QNet(env.obs_dim, env.n_actions)
         target = QNet(env.obs_dim, env.n_actions)
@@ -185,6 +243,7 @@ def run(args: argparse.Namespace, monitor: ValidityMonitor) -> None:
         started_at = time.monotonic()
 
         for episode in range(args.episodes):
+            monitor.begin_episode(episode)
             epsilon = max(0.05, 1.0 - 0.95 * episode / (0.6 * args.episodes))
             observation = reset_env(env, args.train_seed_base + episode, args.mode, **train_ov)
             state = normalize(observation)
@@ -200,36 +259,38 @@ def run(args: argparse.Namespace, monitor: ValidityMonitor) -> None:
                 replay.append((state, action, reward * 100.0, next_state, done))
                 state = next_state
                 step_count += 1
+                monitor.begin_env_step(step_count)
 
                 if len(replay) >= warmup:
+                    monitor.begin_update()
                     sample = random.sample(replay, batch_size)
                     states = torch.stack([item[0] for item in sample])
                     actions = torch.tensor([item[1] for item in sample])
                     rewards = torch.tensor([item[2] for item in sample])
                     next_states = torch.stack([item[3] for item in sample])
                     dones = torch.tensor([float(item[4]) for item in sample])
-                    monitor.check_inputs(step_count, states, next_states, rewards, dones)
+                    monitor.check_inputs(states, next_states, rewards, dones)
                     online_q = net(states)
                     values = online_q.gather(1, actions.unsqueeze(1)).squeeze(1)
                     with torch.inference_mode():
                         target_q = target(next_states)
                         targets = rewards + (1.0 - dones) * target_q.max(1).values
                     loss = loss_fn(values, targets.clone())
-                    monitor.check_q_outputs(step_count, online_q, target_q, targets)
-                    monitor.check_loss(step_count, loss)
+                    monitor.check_q_outputs(online_q, target_q, targets)
+                    monitor.check_loss(loss)
                     optimizer.zero_grad()
                     loss.backward()
-                    monitor.check_grads(step_count, net)
+                    monitor.check_grads(net)
                     optimizer.step()
-                    monitor.check_after_step(step_count, net, optimizer)
+                    monitor.check_after_step(net, optimizer)
                 if step_count % sync_every == 0:
                     target.load_state_dict(net.state_dict())
-                    monitor.check_target_sync(step_count, target)
+                    monitor.check_target_sync(target)
             monitor.context["episodes_completed"] = episode + 1
 
             if (episode + 1) % args.eval_every == 0:
                 with monitor.eval_scope():
-                    value = evaluate(env, net, val_seeds, args.mode, **eval_ov)
+                    value = validate(env, net, val_seeds, args.mode, monitor, **val_ov)
                 monitor.context["evaluations_completed"] += 1
                 curve.append(
                     {"episode": episode + 1, "val_shortfall_bps": value, "eps": epsilon}
@@ -252,7 +313,7 @@ def run(args: argparse.Namespace, monitor: ValidityMonitor) -> None:
 
         if best_state is None:
             with monitor.eval_scope():
-                best_value = evaluate(env, net, val_seeds, args.mode, **eval_ov)
+                best_value = validate(env, net, val_seeds, args.mode, monitor, **val_ov)
             monitor.context["evaluations_completed"] += 1
             best_episode = args.episodes
             best_state = {

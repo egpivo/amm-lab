@@ -16,11 +16,13 @@ BINARY = Path(__file__).resolve().parents[2] / "target/release/rl_equilibrium_re
 
 
 def build_command(args: argparse.Namespace) -> list[str]:
-    use = "val" if args.tune_kappa else args.role
-    seed_blocks.require(use, args.seed_base, args.n, args.authorization)
+    if args.tune_kappa:  # VTR-1 kappa tuning: protected validation block B, scope "kappa_tuning"
+        seed_blocks.require("vtr1_val", args.seed_base, args.n, args.authorization, scope="kappa_tuning")
+    else:
+        seed_blocks.require(args.role, args.seed_base, args.n, args.authorization)
     scenario_config.check_cell(args.cell)
-    if not args.tune_kappa and Path(args.out).exists():
-        raise SystemExit(f"{args.out} exists; VTR-1 outputs are never overwritten")
+    if not args.tune_kappa:
+        seed_blocks.check_new_outputs([args.out])
     scenario_config.load(args.scenario)  # validate keys before launching
     cmd = [str(args.binary), "--cell", args.cell]
     if args.scenario:

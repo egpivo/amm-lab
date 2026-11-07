@@ -12,17 +12,22 @@ import scenario_config
 import seed_blocks
 
 
+FORCED_TERMINAL = "forced_terminal"
+
+
 def plan(args: argparse.Namespace) -> tuple[seed_blocks.Block, dict, tuple[str, str]]:
     """Validate everything that can be validated without starting the simulator."""
     block = seed_blocks.require(args.role, args.seed_base, args.n, args.authorization)
     mode, order = scenario_config.check_cell(args.cell)
     if not Path(args.checkpoint).is_file():
         raise SystemExit(f"checkpoint {args.checkpoint} not found")
-    if Path(args.out).exists():
-        raise SystemExit(f"{args.out} exists; VTR-1 outputs are never overwritten")
-    overrides = {"agent_order": order, **scenario_config.overrides(args.scenario)}
-    if args.completion_rule:
-        overrides["completion_rule"] = args.completion_rule
+    seed_blocks.check_new_outputs([args.out])
+    # forced-terminal completion is the VTR-1 evaluation rule; there is no way to change it
+    overrides = {
+        "agent_order": order,
+        **scenario_config.overrides(args.scenario),
+        "completion_rule": FORCED_TERMINAL,
+    }
     return block, overrides, (mode, order)
 
 
@@ -35,7 +40,6 @@ def parser() -> argparse.ArgumentParser:
     ap.add_argument("--seed-base", type=int, required=True)
     ap.add_argument("--n", type=int, required=True)
     ap.add_argument("--authorization", default=None)
-    ap.add_argument("--completion-rule", choices=["forced_terminal"], default=None)
     ap.add_argument("--replicate-id", default=None)
     ap.add_argument("--out", required=True)
     return ap

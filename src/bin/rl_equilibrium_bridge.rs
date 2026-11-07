@@ -78,6 +78,7 @@ fn main() {
         };
         let reply = match req["cmd"].as_str() {
             Some("reset") => {
+                let mut reset_err: Option<String> = None;
                 let seed = req["seed"].as_u64().unwrap_or(0);
                 let mode = parse_mode(req["mode"].as_str().unwrap_or("dynamic_duopoly"));
                 let mut cfg = EnvConfig::baseline(mode, seed);
@@ -104,8 +105,19 @@ fn main() {
                 if let Some(p) = req["unfinished_penalty"].as_f64() {
                     cfg.unfinished_penalty = p;
                 }
-                if req["completion_rule"].as_str() == Some("forced_terminal") {
-                    cfg.completion_rule = amm_lab::sim::env::CompletionRule::ForcedTerminal;
+                // the only accepted value is "forced_terminal"; anything else is an error
+                if let Some(rule) = req.get("completion_rule") {
+                    match rule.as_str() {
+                        Some("forced_terminal") => {
+                            cfg.completion_rule = amm_lab::sim::env::CompletionRule::ForcedTerminal;
+                        }
+                        _ => reset_err = Some(format!("unsupported completion_rule {rule}")),
+                    }
+                }
+                if let Some(sg) = req.get("sigma")
+                    && !sg.as_f64().is_some_and(|x| x.is_finite() && x > 0.0)
+                {
+                    reset_err = Some(format!("sigma must be a positive number, got {sg}"));
                 }
                 if let Some(r) = req["lp_regime"].as_str() {
                     cfg.lp_regime = match r {
@@ -124,15 +136,18 @@ fn main() {
                 // VTR-1 scenario: absent means baseline; a malformed spec is an error, never a fallback.
                 let spec_err = match req.get("path_spec") {
                     Some(sp) => match serde_json::from_value::<PathSpec>(sp.clone()) {
-                        Ok(spec) => {
-                            cfg.path_spec = spec;
-                            None
-                        }
+                        Ok(spec) => match spec.validate() {
+                            Ok(()) => {
+                                cfg.path_spec = spec;
+                                None
+                            }
+                            Err(e) => Some(e),
+                        },
                         Err(e) => Some(e.to_string()),
                     },
                     None => None,
                 };
-                if let Some(message) = spec_err {
+                if let Some(message) = reset_err.or(spec_err) {
                     json!({"type": "error", "message": message})
                 } else {
                     // one prepared generator per distinct spec, reused across resets

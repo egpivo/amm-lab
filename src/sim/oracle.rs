@@ -60,12 +60,14 @@ fn stream_seed(seed: u64, (k, c): (u64, u64)) -> u64 {
 /// Bounded heavy-tailed innovation: Student-t(nu) truncated at `cap` standardized
 /// units and re-standardized (spec §5).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TInnov {
     pub nu: f64,
     pub cap: f64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct VolState {
     /// Log-volatility sd s (Group 2: truncated-normal xi; Group 3: AR(1) state).
     pub s: f64,
@@ -76,6 +78,7 @@ pub struct VolState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
 pub enum PathSpec {
     /// Constant-sigma GBM from `EnvConfig::sigma` (Group 1 = baseline with another sigma).
     #[default]
@@ -86,6 +89,40 @@ pub enum PathSpec {
         vol: Option<VolState>,
         t: Option<TInnov>,
     },
+}
+
+impl PathSpec {
+    /// Parameter constraints of the scenario specification (§§3-5): a spec that fails here is
+    /// rejected, never repaired or replaced by a default.
+    pub fn validate(&self) -> Result<(), String> {
+        let pos = |name: &str, x: f64| {
+            if x.is_finite() && x > 0.0 {
+                Ok(())
+            } else {
+                Err(format!("{name} must be finite and > 0, got {x}"))
+            }
+        };
+        let PathSpec::Scenario { sigma_bar, vol, t } = self else {
+            return Ok(());
+        };
+        pos("sigma_bar", *sigma_bar)?;
+        if let Some(v) = vol {
+            if !(v.s.is_finite() && v.s >= 0.0) {
+                return Err(format!("s must be finite and >= 0, got {}", v.s));
+            }
+            pos("k", v.k)?;
+            if let Some(tau) = v.tau {
+                pos("tau", tau)?;
+            }
+        }
+        if let Some(t) = t {
+            if !(t.nu.is_finite() && t.nu > 2.0) {
+                return Err(format!("nu must be finite and > 2, got {}", t.nu));
+            }
+            pos("cap", t.cap)?;
+        }
+        Ok(())
+    }
 }
 
 /// Quantities the W0 harness logs next to the returns.

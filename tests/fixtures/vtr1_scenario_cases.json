@@ -1,0 +1,308 @@
+[
+ {
+  "name": "group1_sigma",
+  "valid": true,
+  "json": {
+   "name": "S1",
+   "sigma": 0.65
+  }
+ },
+ {
+  "name": "empty_is_baseline",
+  "valid": true,
+  "json": {}
+ },
+ {
+  "name": "gaussian_group3",
+  "valid": true,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "sigma_bar": 0.5,
+     "vol": {
+      "s": 0.4,
+      "tau": 30.0,
+      "k": 2.5
+     },
+     "t": null
+    }
+   }
+  }
+ },
+ {
+  "name": "group2_episode",
+  "valid": true,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "sigma_bar": 0.5,
+     "vol": {
+      "s": 0.4,
+      "tau": null,
+      "k": 2.5
+     },
+     "t": null
+    }
+   }
+  }
+ },
+ {
+  "name": "student_t",
+  "valid": true,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "sigma_bar": 0.5,
+     "vol": null,
+     "t": {
+      "nu": 5.0,
+      "cap": 12.0
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "s_zero_allowed",
+  "valid": true,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "sigma_bar": 0.5,
+     "vol": {
+      "s": 0.0,
+      "tau": 30.0,
+      "k": 2.5
+     },
+     "t": null
+    }
+   }
+  }
+ },
+ {
+  "name": "bool_sigma",
+  "valid": false,
+  "json": {
+   "sigma": true
+  }
+ },
+ {
+  "name": "string_sigma",
+  "valid": false,
+  "json": {
+   "sigma": "0.65"
+  }
+ },
+ {
+  "name": "negative_sigma",
+  "valid": false,
+  "json": {
+   "sigma": -0.5
+  }
+ },
+ {
+  "name": "zero_sigma",
+  "valid": false,
+  "json": {
+   "sigma": 0.0
+  }
+ },
+ {
+  "name": "unknown_top_key",
+  "valid": false,
+  "json": {
+   "sigma": 0.5,
+   "volatility": 1
+  }
+ },
+ {
+  "name": "name_not_string",
+  "valid": false,
+  "json": {
+   "name": 3
+  }
+ },
+ {
+  "name": "bool_sigma_bar",
+  "valid": false,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "sigma_bar": true,
+     "vol": null,
+     "t": null
+    }
+   }
+  }
+ },
+ {
+  "name": "zero_sigma_bar",
+  "valid": false,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "sigma_bar": 0.0,
+     "vol": null,
+     "t": null
+    }
+   }
+  }
+ },
+ {
+  "name": "nu_two",
+  "valid": false,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "sigma_bar": 0.5,
+     "vol": null,
+     "t": {
+      "nu": 2.0,
+      "cap": 12.0
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "cap_zero",
+  "valid": false,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "sigma_bar": 0.5,
+     "vol": null,
+     "t": {
+      "nu": 5.0,
+      "cap": 0.0
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "tau_zero",
+  "valid": false,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "sigma_bar": 0.5,
+     "vol": {
+      "s": 0.4,
+      "tau": 0.0,
+      "k": 2.5
+     },
+     "t": null
+    }
+   }
+  }
+ },
+ {
+  "name": "s_negative",
+  "valid": false,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "sigma_bar": 0.5,
+     "vol": {
+      "s": -0.1,
+      "tau": 30.0,
+      "k": 2.5
+     },
+     "t": null
+    }
+   }
+  }
+ },
+ {
+  "name": "k_zero",
+  "valid": false,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "sigma_bar": 0.5,
+     "vol": {
+      "s": 0.4,
+      "tau": 30.0,
+      "k": 0.0
+     },
+     "t": null
+    }
+   }
+  }
+ },
+ {
+  "name": "unknown_nested_key",
+  "valid": false,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "sigma_bar": 0.5,
+     "vol": null,
+     "t": {
+      "nu": 5.0,
+      "cap": 12.0,
+      "df": 5
+     }
+    }
+   }
+  }
+ },
+ {
+  "name": "unknown_variant",
+  "valid": false,
+  "json": {
+   "path_spec": {
+    "Jump": {}
+   }
+  }
+ },
+ {
+  "name": "missing_optional_t_is_none",
+  "valid": true,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "sigma_bar": 0.5,
+     "vol": null
+    }
+   }
+  }
+ },
+ {
+  "name": "path_spec_wrong_type",
+  "valid": false,
+  "json": {
+   "path_spec": 3
+  }
+ },
+ {
+  "name": "missing_required_sigma_bar",
+  "valid": false,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "vol": null,
+     "t": null
+    }
+   }
+  }
+ },
+ {
+  "name": "tau_bool",
+  "valid": false,
+  "json": {
+   "path_spec": {
+    "Scenario": {
+     "sigma_bar": 0.5,
+     "vol": {
+      "s": 0.4,
+      "tau": true,
+      "k": 2.5
+     },
+     "t": null
+    }
+   }
+  }
+ }
+]
