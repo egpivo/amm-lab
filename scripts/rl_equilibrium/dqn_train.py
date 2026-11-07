@@ -3,15 +3,20 @@
 import argparse
 import random
 import time
+from pathlib import Path
 from collections import deque
 from typing import TypeAlias
 
 import torch
 import torch.nn as nn
 
+import sys
+
+import seed_blocks
 from common import OUT, write_csv
 from dqn_core import QNet, evaluate, greedy_action, greedy_episode, normalize, reset_env
 from gym_env import AmmExecutionEnv
+from training_validity import TrainingInvalid, ValidityMonitor
 
 ReplayItem: TypeAlias = tuple[torch.Tensor, int, float, torch.Tensor, bool]
 
@@ -34,10 +39,42 @@ def main() -> None:
         default=7,
         help="Framework seed for torch/random (independent training replicate).",
     )
+    parser.add_argument("--train-seed-base", type=int, default=1_000_000)
+    parser.add_argument("--val-seed-base", type=int, default=20_000)
+    parser.add_argument("--test-seed-base", type=int, default=30_000)
+    parser.add_argument("--fresh-seed-base", type=int, default=40_000)
+    parser.add_argument(
+        "--check-finite",
+        action="store_true",
+        help="VTR-1 technical training-validity checks; writes a per-run validity record.",
+    )
+    parser.add_argument("--validity-out", default=None)
     args = parser.parse_args()
     if min(args.episodes, args.eval_every, args.n_val, args.n_test) <= 0:
         parser.error("episode and seed counts must be positive")
 
+    seed_blocks.require("train", args.train_seed_base, args.episodes)
+    seed_blocks.require("val", args.val_seed_base, args.n_val)
+    seed_blocks.require("eval", args.test_seed_base, args.n_test)
+    seed_blocks.require("eval", args.fresh_seed_base, args.n_test)
+
+    monitor = ValidityMonitor(args.check_finite)
+    validity_path = (
+        OUT / f"validity_{args.tag}.json"
+        if args.validity_out is None
+        else Path(args.validity_out)
+    )
+    try:
+        run(args, monitor)
+    except TrainingInvalid as error:
+        monitor.write(validity_path, args.tag)
+        print(f"TRAINING_INVALID: {error}", file=sys.stderr, flush=True)
+        sys.exit(3)
+    if args.check_finite:
+        monitor.write(validity_path, args.tag)
+
+
+def run(args: argparse.Namespace, monitor: ValidityMonitor) -> None:
     torch.manual_seed(args.seed)
     random.seed(args.seed)
     torch.set_num_threads(1)
@@ -60,12 +97,12 @@ def main() -> None:
         curve: list[dict[str, float | int]] = []
         best_value = float("inf")
         best_state: dict[str, torch.Tensor] | None = None
-        val_seeds = range(20_000, 20_000 + args.n_val)
+        val_seeds = range(args.val_seed_base, args.val_seed_base + args.n_val)
         started_at = time.monotonic()
 
         for episode in range(args.episodes):
             epsilon = max(0.05, 1.0 - 0.95 * episode / (0.6 * args.episodes))
-            observation = reset_env(env, 1_000_000 + episode, args.mode, **train_ov)
+            observation = reset_env(env, args.train_seed_base + episode, args.mode, **train_ov)
             state = normalize(observation)
             done = False
             while not done:
@@ -87,15 +124,19 @@ def main() -> None:
                     rewards = torch.tensor([item[2] for item in sample])
                     next_states = torch.stack([item[3] for item in sample])
                     dones = torch.tensor([float(item[4]) for item in sample])
+                    monitor.check_inputs(step_count, states, next_states, rewards)
                     values = net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
                     with torch.inference_mode():
                         targets = (
                             rewards + (1.0 - dones) * target(next_states).max(1).values
                         )
                     loss = loss_fn(values, targets.clone())
+                    monitor.check_forward(step_count, values, targets, loss)
                     optimizer.zero_grad()
                     loss.backward()
+                    monitor.check_grads(step_count, net)
                     optimizer.step()
+                    monitor.check_after_step(step_count, net, optimizer)
                 if step_count % sync_every == 0:
                     target.load_state_dict(net.state_dict())
 
@@ -142,7 +183,10 @@ def main() -> None:
         )
 
         results = []
-        for label, base in (("test", 30_000), ("fresh", 40_000)):
+        for label, base in (
+            ("test", args.test_seed_base),
+            ("fresh", args.fresh_seed_base),
+        ):
             for seed in range(base, base + args.n_test):
                 summary = greedy_episode(env, net, seed, args.mode, **eval_ov)
                 results.append(

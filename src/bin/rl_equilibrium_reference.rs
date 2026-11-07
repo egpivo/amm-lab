@@ -26,9 +26,33 @@ struct Args {
     /// Lookahead carry parameter (default matches the frozen baseline-duopoly runs).
     #[arg(long, default_value_t = 16.0)]
     kappa: f64,
+    /// First seed of the kappa-validation block (default: the frozen 20,000).
+    #[arg(long, default_value_t = 20_000)]
+    tune_seed_base: u64,
+    /// Number of kappa-validation seeds (default: the frozen 200).
+    #[arg(long, default_value_t = 200)]
+    tune_n: u64,
+    /// Restrict to one cell, "mode/order" (e.g. dynamic_duopoly/before); with --seed-base
+    /// this also allows non-duopoly modes at a new base. Default: all frozen cells.
+    #[arg(long)]
+    cell: Option<String>,
 }
 
-fn tune_kappa(horizon: usize) {
+fn cell_name(mode: MarketMode, order: AgentOrder) -> String {
+    let m = match mode {
+        MarketMode::ConstantDuopoly => "constant_duopoly",
+        MarketMode::DynamicMonopoly => "dynamic_monopoly",
+        _ => "dynamic_duopoly",
+    };
+    let o = match order {
+        AgentOrder::Before => "before",
+        AgentOrder::Random => "random",
+        AgentOrder::After => "after",
+    };
+    format!("{m}/{o}")
+}
+
+fn tune_kappa(horizon: usize, seed_base: u64, n: u64, cell: Option<&str>) {
     let cells = [
         (
             MarketMode::DynamicDuopoly,
@@ -57,10 +81,13 @@ fn tune_kappa(horizon: usize) {
         ),
     ];
     for (mode, order, order_name) in cells {
+        if cell.is_some_and(|c| c != cell_name(mode, order)) {
+            continue;
+        }
         let mut best = (f64::NAN, f64::INFINITY);
         for kappa in [4.0, 8.0, 16.0, 32.0] {
             let mut sum = 0.0;
-            for seed in 20_000u64..20_200 {
+            for seed in seed_base..seed_base + n {
                 let mut cfg = EnvConfig::baseline(mode, seed);
                 cfg.agent_order = order;
                 cfg.completion_rule = CompletionRule::ForcedTerminal;
@@ -77,7 +104,7 @@ fn tune_kappa(horizon: usize) {
                 }
                 sum += env.summary("lookahead").shortfall_bps;
             }
-            let mean = sum / 200.0;
+            let mean = sum / n as f64;
             println!("{order_name} kappa={kappa}: val IS {mean:.2}");
             if mean < best.1 {
                 best = (kappa, mean);
@@ -93,7 +120,12 @@ fn main() {
         let horizon = EnvConfig::baseline(MarketMode::DynamicDuopoly, 0)
             .order
             .horizon;
-        tune_kappa(horizon);
+        tune_kappa(
+            horizon,
+            args.tune_seed_base,
+            args.tune_n,
+            args.cell.as_deref(),
+        );
         return;
     }
     let horizon = EnvConfig::baseline(MarketMode::DynamicDuopoly, 0)
@@ -122,7 +154,15 @@ fn main() {
             if mode != MarketMode::DynamicDuopoly && order != AgentOrder::Before {
                 continue;
             }
-            if args.seed_base.is_some() && mode != MarketMode::DynamicDuopoly {
+            if args.seed_base.is_some() && args.cell.is_none() && mode != MarketMode::DynamicDuopoly
+            {
+                continue;
+            }
+            if args
+                .cell
+                .as_ref()
+                .is_some_and(|c| *c != cell_name(mode, order))
+            {
                 continue;
             }
             let seed_sets: Vec<(&str, u64)> = match args.seed_base {

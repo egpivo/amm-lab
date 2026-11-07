@@ -118,8 +118,25 @@ fn main() {
                         _ => amm_lab::sim::env::JitRegime::None,
                     };
                 }
-                env = ExecEnv::new(cfg);
-                state_msg(&env, "state", None, false, "rl")
+                // VTR-1 scenario: absent means baseline; a malformed spec is an error, never a fallback.
+                let spec_err = match req.get("path_spec") {
+                    Some(sp) => {
+                        match serde_json::from_value::<amm_lab::sim::oracle::PathSpec>(sp.clone()) {
+                            Ok(spec) => {
+                                cfg.path_spec = spec;
+                                None
+                            }
+                            Err(e) => Some(e.to_string()),
+                        }
+                    }
+                    None => None,
+                };
+                if let Some(message) = spec_err {
+                    json!({"type": "error", "message": message})
+                } else {
+                    env = ExecEnv::new(cfg);
+                    state_msg(&env, "state", None, false, "rl")
+                }
             }
             Some("step") => {
                 if env.is_done() {

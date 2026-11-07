@@ -18,7 +18,7 @@ use crate::sim::amm::Pool;
 use crate::sim::arbitrage::{ArbConfig, arbitrage_step};
 use crate::sim::fee::{ConstantFee, FeeInputs, FeeRule, LinearDynamicFee};
 use crate::sim::noise::{NoiseConfig, NoiseFlows, noise_flows};
-use crate::sim::oracle::{gbm_path, rolling_vol};
+use crate::sim::oracle::{PathSpec, ScenarioGen, gbm_path, rolling_vol};
 use rand::Rng;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
@@ -158,6 +158,9 @@ pub struct EnvConfig {
     pub lp_regime: LpRegime,
     /// JIT-searcher JIT/searcher layer (default None = baseline-duopoly semantics).
     pub jit_regime: JitRegime,
+    /// VTR-1 price-path scenario (default Baseline = constant-sigma GBM, unchanged).
+    #[serde(default)]
+    pub path_spec: PathSpec,
     pub seed: u64,
 }
 
@@ -187,6 +190,7 @@ impl EnvConfig {
             completion_rule: CompletionRule::Standard,
             lp_regime: LpRegime::Frozen,
             jit_regime: JitRegime::None,
+            path_spec: PathSpec::Baseline,
             seed,
         }
     }
@@ -410,14 +414,28 @@ impl ExecEnv {
 
     pub fn reset(&mut self, seed: u64) {
         self.cfg.seed = seed;
-        self.prices = gbm_path(
-            self.cfg.order.horizon + 1,
-            self.cfg.s0,
-            self.cfg.mu,
-            self.cfg.sigma,
-            self.cfg.dt,
-            seed,
-        );
+        self.prices = match self.cfg.path_spec {
+            PathSpec::Baseline => gbm_path(
+                self.cfg.order.horizon + 1,
+                self.cfg.s0,
+                self.cfg.mu,
+                self.cfg.sigma,
+                self.cfg.dt,
+                seed,
+            ),
+            spec => {
+                ScenarioGen::new(spec)
+                    .path(
+                        self.cfg.order.horizon + 1,
+                        self.cfg.s0,
+                        self.cfg.mu,
+                        self.cfg.sigma,
+                        self.cfg.dt,
+                        seed,
+                    )
+                    .0
+            }
+        };
         let fee = self.cfg.constant_fee;
         self.pools = (0..2)
             .map(|_| Pool::new(self.cfg.pool_reserve_x, self.cfg.pool_reserve_y, fee, fee))

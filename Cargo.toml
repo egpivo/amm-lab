@@ -19,6 +19,7 @@ flate2 = "1"
 ruint = "1"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 ureq = { version = "2", features = ["json"] }
+statrs = { version = "0.17", default-features = false }
 
 [dev-dependencies]
 proptest = "1"
