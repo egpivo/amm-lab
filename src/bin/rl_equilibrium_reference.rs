@@ -2,10 +2,14 @@
 //! ordering and market mode, ForcedTerminal completion, test + fresh seeds.
 //! DQN matrices from dqn_baseline_eval.py are compared against these rows.
 
-use amm_lab::sim::env::{AgentOrder, CompletionRule, EnvConfig, ExecEnv, MarketMode};
+use amm_lab::sim::env::{
+    AgentOrder, CompletionRule, EnvConfig, ExecEnv, MarketMode, ScenarioConfig,
+};
 use amm_lab::sim::execution_agent::{ExecutionPolicy, LookaheadPolicy, TwapPolicy};
+use amm_lab::sim::oracle::{PathSpec, ScenarioGen};
 use clap::Parser;
 use std::io::Write as _;
+use std::sync::Arc;
 
 #[derive(Parser)]
 struct Args {
@@ -26,9 +30,62 @@ struct Args {
     /// Lookahead carry parameter (default matches the frozen baseline-duopoly runs).
     #[arg(long, default_value_t = 16.0)]
     kappa: f64,
+    /// First seed of the kappa-validation block (default: the frozen 20,000).
+    #[arg(long, default_value_t = 20_000)]
+    tune_seed_base: u64,
+    /// Number of kappa-validation seeds (default: the frozen 200).
+    #[arg(long, default_value_t = 200)]
+    tune_n: u64,
+    /// Restrict to one cell, "mode/order" (e.g. dynamic_duopoly/before); with --seed-base
+    /// this also allows non-duopoly modes at a new base. Default: all frozen cells.
+    #[arg(long)]
+    cell: Option<String>,
+    /// VTR-1 scenario JSON (same file the DQN scripts use). Default: baseline.
+    #[arg(long)]
+    scenario: Option<String>,
 }
 
-fn tune_kappa(horizon: usize) {
+/// Scenario applied identically to kappa tuning and reference evaluation; the
+/// generator is prepared once and shared by every environment.
+struct Scenario {
+    config: ScenarioConfig,
+    shared: Option<Arc<ScenarioGen>>,
+}
+
+impl Scenario {
+    fn load(path: Option<&str>) -> Self {
+        let config = match path {
+            Some(p) => ScenarioConfig::from_file(p).unwrap_or_else(|e| panic!("scenario: {e}")),
+            None => ScenarioConfig::default(),
+        };
+        let shared = match config.path_spec {
+            PathSpec::Baseline => None,
+            spec => Some(Arc::new(ScenarioGen::new(spec))),
+        };
+        Self { config, shared }
+    }
+
+    fn env(&self, mut cfg: EnvConfig) -> ExecEnv {
+        self.config.apply(&mut cfg);
+        ExecEnv::with_scenario(cfg, self.shared.clone())
+    }
+}
+
+fn cell_name(mode: MarketMode, order: AgentOrder) -> String {
+    let m = match mode {
+        MarketMode::ConstantDuopoly => "constant_duopoly",
+        MarketMode::DynamicMonopoly => "dynamic_monopoly",
+        _ => "dynamic_duopoly",
+    };
+    let o = match order {
+        AgentOrder::Before => "before",
+        AgentOrder::Random => "random",
+        AgentOrder::After => "after",
+    };
+    format!("{m}/{o}")
+}
+
+fn tune_kappa(horizon: usize, seed_base: u64, n: u64, cell: Option<&str>, scen: &Scenario) {
     let cells = [
         (
             MarketMode::DynamicDuopoly,
@@ -57,10 +114,13 @@ fn tune_kappa(horizon: usize) {
         ),
     ];
     for (mode, order, order_name) in cells {
+        if cell.is_some_and(|c| c != cell_name(mode, order)) {
+            continue;
+        }
         let mut best = (f64::NAN, f64::INFINITY);
         for kappa in [4.0, 8.0, 16.0, 32.0] {
             let mut sum = 0.0;
-            for seed in 20_000u64..20_200 {
+            for seed in seed_base..seed_base + n {
                 let mut cfg = EnvConfig::baseline(mode, seed);
                 cfg.agent_order = order;
                 cfg.completion_rule = CompletionRule::ForcedTerminal;
@@ -69,7 +129,7 @@ fn tune_kappa(horizon: usize) {
                     kappa,
                     unfinished_penalty: 0.02,
                 };
-                let mut env = ExecEnv::new(cfg);
+                let mut env = scen.env(cfg);
                 la.reset();
                 while !env.is_done() {
                     let a = la.act(&env.observe());
@@ -77,7 +137,7 @@ fn tune_kappa(horizon: usize) {
                 }
                 sum += env.summary("lookahead").shortfall_bps;
             }
-            let mean = sum / 200.0;
+            let mean = sum / n as f64;
             println!("{order_name} kappa={kappa}: val IS {mean:.2}");
             if mean < best.1 {
                 best = (kappa, mean);
@@ -89,11 +149,18 @@ fn tune_kappa(horizon: usize) {
 
 fn main() {
     let args = Args::parse();
+    let scen = Scenario::load(args.scenario.as_deref());
     if args.tune_kappa {
         let horizon = EnvConfig::baseline(MarketMode::DynamicDuopoly, 0)
             .order
             .horizon;
-        tune_kappa(horizon);
+        tune_kappa(
+            horizon,
+            args.tune_seed_base,
+            args.tune_n,
+            args.cell.as_deref(),
+            &scen,
+        );
         return;
     }
     let horizon = EnvConfig::baseline(MarketMode::DynamicDuopoly, 0)
@@ -122,7 +189,15 @@ fn main() {
             if mode != MarketMode::DynamicDuopoly && order != AgentOrder::Before {
                 continue;
             }
-            if args.seed_base.is_some() && mode != MarketMode::DynamicDuopoly {
+            if args.seed_base.is_some() && args.cell.is_none() && mode != MarketMode::DynamicDuopoly
+            {
+                continue;
+            }
+            if args
+                .cell
+                .as_ref()
+                .is_some_and(|c| *c != cell_name(mode, order))
+            {
                 continue;
             }
             let seed_sets: Vec<(&str, u64)> = match args.seed_base {
@@ -145,7 +220,7 @@ fn main() {
                         ("lookahead", &mut la as &mut dyn ExecutionPolicy),
                         ("twap", &mut tw),
                     ] {
-                        let mut env = ExecEnv::new(cfg.clone());
+                        let mut env = scen.env(cfg.clone());
                         p.reset();
                         while !env.is_done() {
                             let obs = env.observe();
